@@ -1,0 +1,6 @@
+{
+  "appId": "com.yourname.timetracker",
+  "appName": "TimeTracker",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
