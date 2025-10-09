@@ -13,14 +13,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node and Install Dependencies
-        uses: actions/setup-node@v4
+      - name: Set up Node
+        uses: actions:setup-node@v4
         with:
           node-version: 20
 
-      - name: Install npm dependencies
-        run: npm install
-
+      - name: Install Node Dependencies
+        run: |
+          # Instalează dependențele din package.json
+          npm install
+          # Asigură-te că pachetul nativ iOS este instalat pentru Capacitor (FIX CRITIC)
+          npm install @capacitor/ios
+          
       - name: Build web app
         run: npm run build
 
@@ -31,16 +35,15 @@ jobs:
           # Copiază fișierele web în proiectul nativ
           npx cap copy ios
           
-      - name: Install CocoaPods and Dependencies (CRITICAL FIX)
+      - name: Install CocoaPods and Dependencies
         run: |
           # Instalarea cocoapods este necesară pentru a folosi 'pod install'
           sudo gem install cocoapods 
           
-          # NEAPĂRAT: Navighează în directorul 'ios'
+          # NEAPĂRAT: Navighează în directorul 'ios' (FIX CRITIC #1)
           cd ios
           
           # Rulează pod install pentru a genera App.xcworkspace
-          # (Acest fișier este cheia lipsei tale)
           pod install
 
       - name: Build iOS app (archive, unsigned)
