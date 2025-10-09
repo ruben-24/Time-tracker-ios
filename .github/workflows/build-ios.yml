@@ -37,7 +37,9 @@ jobs:
 
       - name: Install CocoaPods
         run: |
+          sudo gem install cocoapods
           cd ios
+          pod repo update
           pod install --repo-update
 
       - name: Build iOS app (archive, unsigned)
