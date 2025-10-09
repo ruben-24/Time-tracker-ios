@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Play, Pause, StopCircle, History, Settings, MapPin, TrendingUp, ArrowLeft, Edit2, Check, X, Coffee } from 'lucide-react';
+import { Clock, Play, Pause, StopCircle, History, Settings, MapPin, TrendingUp, ArrowLeft, Edit2, Check, X, Coffee, Download, Upload, PlusCircle, Calendar, Trash2 } from 'lucide-react';
 
 const DEFAULT_LOCATION_1 = "Wasserburger Str. 15a, 83119 Obing";
 const DEFAULT_LOCATION_2 = "Adresa personalizată";
@@ -19,11 +19,11 @@ const TimeTrackerApp = () => {
   const [workRecords, setWorkRecords] = useState({ location1: [], location2: [] });
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeView, setActiveView] = useState('main');
+  const [showManualEntry, setShowManualEntry] = useState(false);
 
   const getCurrentLocation = () => activeLocation === 1 ? DEFAULT_LOCATION_1 : location2Custom;
   const getLocationKey = () => activeLocation === 1 ? 'location1' : 'location2';
 
-  // Calcul timp pauză curentă în secunde
   const getCurrentPauseDuration = () => {
     if (!isPaused || !pauseStartTime) return 0;
     return Math.floor((currentTime - pauseStartTime) / 1000);
@@ -210,7 +210,53 @@ const TimeTrackerApp = () => {
     }
   };
 
-  // Dynamic Island Widget pentru pauză
+  // Export data
+  const exportData = () => {
+    const data = {
+      workRecords,
+      location2Custom,
+      exportDate: new Date().toISOString(),
+      version: '2.0'
+    };
+    
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `timetracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    alert('✅ Date exportate cu succes!');
+  };
+
+  // Import data
+  const importData = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const imported = JSON.parse(e.target.result);
+        
+        if (window.confirm('Ești sigur? Datele curente vor fi ÎNLOCUITE cu cele din backup!')) {
+          setWorkRecords(imported.workRecords || { location1: [], location2: [] });
+          setLocation2Custom(imported.location2Custom || DEFAULT_LOCATION_2);
+          alert('✅ Date importate cu succes!');
+        }
+      } catch (error) {
+        alert('❌ Eroare: Fișier invalid!');
+        console.error('Import error:', error);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
   const DynamicIslandWidget = () => {
     if (!isPaused) return null;
     
@@ -233,17 +279,216 @@ const TimeTrackerApp = () => {
     );
   };
 
+  const ManualEntryModal = () => {
+    const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
+    const [manualStartTime, setManualStartTime] = useState('09:00:00');
+    const [manualEndTime, setManualEndTime] = useState('17:00:00');
+    const [manualLocation, setManualLocation] = useState(activeLocation);
+    const [manualPauses, setManualPauses] = useState([]);
+
+    const addManualPause = () => {
+      setManualPauses([...manualPauses, { start: '12:00:00', end: '12:30:00' }]);
+    };
+
+    const updateManualPause = (index, field, value) => {
+      const updated = [...manualPauses];
+      updated[index][field] = value;
+      setManualPauses(updated);
+    };
+
+    const removeManualPause = (index) => {
+      setManualPauses(manualPauses.filter((_, i) => i !== index));
+    };
+
+    const saveManualEntry = () => {
+      try {
+        const startDateTime = new Date(`${manualDate}T${manualStartTime}`);
+        const endDateTime = new Date(`${manualDate}T${manualEndTime}`);
+        
+        if (endDateTime <= startDateTime) {
+          alert('❌ Ora de final trebuie să fie după ora de start!');
+          return;
+        }
+
+        const totalWorkSeconds = Math.floor((endDateTime - startDateTime) / 1000);
+        
+        const processedPauses = manualPauses.map(pause => {
+          const pauseStart = new Date(`${manualDate}T${pause.start}`);
+          const pauseEnd = new Date(`${manualDate}T${pause.end}`);
+          const duration = Math.floor((pauseEnd - pauseStart) / 1000);
+          
+          return {
+            start: pauseStart.toISOString(),
+            end: pauseEnd.toISOString(),
+            startFormatted: formatExactTime(pauseStart),
+            endFormatted: formatExactTime(pauseEnd),
+            duration
+          };
+        });
+
+        const totalPauseDuration = processedPauses.reduce((sum, p) => sum + p.duration, 0);
+        const workDuration = totalWorkSeconds - totalPauseDuration;
+
+        const record = {
+          date: manualDate,
+          startTime: startDateTime.toISOString(),
+          endTime: endDateTime.toISOString(),
+          workDuration,
+          pauseDuration: totalPauseDuration,
+          pauseHistory: processedPauses,
+          location: manualLocation === 1 ? DEFAULT_LOCATION_1 : location2Custom,
+          manual: true
+        };
+
+        const locationKey = manualLocation === 1 ? 'location1' : 'location2';
+        setWorkRecords({
+          ...workRecords,
+          [locationKey]: [...workRecords[locationKey], record].sort((a, b) => 
+            new Date(b.startTime) - new Date(a.startTime)
+          )
+        });
+
+        alert('✅ Sesiune adăugată cu succes!');
+        setShowManualEntry(false);
+      } catch (error) {
+        alert('❌ Eroare la salvare!');
+        console.error(error);
+      }
+    };
+
+    if (!showManualEntry) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <PlusCircle className="w-6 h-6" />
+              Adaugă Sesiune Manual
+            </h3>
+            <button onClick={() => setShowManualEntry(false)} className="text-gray-400 hover:text-white">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-gray-300 mb-2">📅 Data:</label>
+              <input
+                type="date"
+                value={manualDate}
+                onChange={(e) => setManualDate(e.target.value)}
+                className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-gray-300 mb-2">🕐 Start:</label>
+                <input
+                  type="time"
+                  step="1"
+                  value={manualStartTime}
+                  onChange={(e) => setManualStartTime(e.target.value)}
+                  className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-300 mb-2">🕐 Final:</label>
+                <input
+                  type="time"
+                  step="1"
+                  value={manualEndTime}
+                  onChange={(e) => setManualEndTime(e.target.value)}
+                  className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-300 mb-2">📍 Locație:</label>
+              <select
+                value={manualLocation}
+                onChange={(e) => setManualLocation(parseInt(e.target.value))}
+                className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value={1}>Locație 1</option>
+                <option value={2}>Locație 2</option>
+              </select>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm text-gray-300">☕ Pauze:</label>
+                <button
+                  onClick={addManualPause}
+                  className="text-xs bg-yellow-500 hover:bg-yellow-600 px-3 py-1 rounded-lg flex items-center gap-1"
+                >
+                  <PlusCircle className="w-3 h-3" /> Adaugă Pauză
+                </button>
+              </div>
+
+              {manualPauses.map((pause, index) => (
+                <div key={index} className="bg-white/5 rounded-lg p-3 mb-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-yellow-400">Pauza {index + 1}</span>
+                    <button
+                      onClick={() => removeManualPause(index)}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="time"
+                      step="1"
+                      value={pause.start}
+                      onChange={(e) => updateManualPause(index, 'start', e.target.value)}
+                      className="px-2 py-1 bg-white/10 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                    />
+                    <input
+                      type="time"
+                      step="1"
+                      value={pause.end}
+                      onChange={(e) => updateManualPause(index, 'end', e.target.value)}
+                      className="px-2 py-1 bg-white/10 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <button
+                onClick={saveManualEntry}
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+              >
+                <Check className="w-5 h-5" />
+                Salvează
+              </button>
+              <button
+                onClick={() => setShowManualEntry(false)}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-xl"
+              >
+                Anulează
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const MainView = () => (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
-      {/* Dynamic Island Widget */}
       <DynamicIslandWidget />
+      <ManualEntryModal />
       
-      {/* Safe area top for iPhone notch/Dynamic Island */}
       <div className="h-16"></div>
       
       <div className="px-6 pb-10">
         <div className="max-w-md mx-auto">
-          {/* Header */}
           <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-3 mb-3">
               <Clock className="w-8 h-8 text-blue-400" />
@@ -251,7 +496,6 @@ const TimeTrackerApp = () => {
             </div>
           </div>
 
-          {/* Location Switcher */}
           <div className="mb-6">
             <div className="flex gap-2 mb-3">
               <button
@@ -324,7 +568,6 @@ const TimeTrackerApp = () => {
             </div>
           </div>
 
-          {/* Pause Timer Card - Vizibil doar în pauză */}
           {isPaused && (
             <div className="mb-6 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-lg rounded-2xl p-6 border-2 border-yellow-400/50 shadow-2xl animate-pulse-slow">
               <div className="text-center">
@@ -342,7 +585,6 @@ const TimeTrackerApp = () => {
             </div>
           )}
 
-          {/* Status Display */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-6 shadow-2xl">
             {!isAtWork ? (
               <div className="text-center">
@@ -385,7 +627,6 @@ const TimeTrackerApp = () => {
             )}
           </div>
 
-          {/* Action Buttons */}
           <div className="space-y-3 mb-6">
             {!isAtWork ? (
               <button
@@ -423,7 +664,6 @@ const TimeTrackerApp = () => {
             )}
           </div>
 
-          {/* Navigation Buttons */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             <button
               onClick={() => setActiveView('history')}
@@ -440,17 +680,14 @@ const TimeTrackerApp = () => {
               Setări
             </button>
           </div>
-
-          {/* Current Time */}
-          <div className="text-center text-sm text-gray-400">
-            {currentTime.toLocaleDateString('ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            <br />
-            {currentTime.toLocaleTimeString('ro-RO')}
-          </div>
-        </div>
-      </div>
+<div className="text-center text-sm text-gray-400">
+  {currentTime.toLocaleDateString('ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+  <br />
+  {currentTime.toLocaleTimeString('ro-RO')}
+</div>
+ </div>
+ </div>
       
-      {/* Safe area bottom for iPhone home indicator */}
       <div className="h-8"></div>
     </div>
   );
@@ -461,14 +698,12 @@ const TimeTrackerApp = () => {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
-        {/* Dynamic Island Widget */}
         <DynamicIslandWidget />
         
         <div className="h-16"></div>
         
         <div className="px-6 pb-10">
           <div className="max-w-md mx-auto">
-            {/* Back Button - moved lower */}
             <button
               onClick={() => setActiveView('main')}
               className="mb-6 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-6 rounded-xl flex items-center gap-2 transition"
@@ -485,6 +720,14 @@ const TimeTrackerApp = () => {
             <div className="mb-4 p-3 bg-blue-500/20 rounded-xl text-sm">
               <p className="font-semibold">📍 {getCurrentLocation()}</p>
             </div>
+
+            <button
+              onClick={() => setShowManualEntry(true)}
+              className="w-full mb-6 bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-2 transition"
+            >
+              <PlusCircle className="w-5 h-5" />
+              Adaugă Sesiune Manual
+            </button>
 
             {sortedRecords.length === 0 ? (
               <div className="text-center py-12">
@@ -506,6 +749,11 @@ const TimeTrackerApp = () => {
                             year: 'numeric'
                           })}
                         </p>
+                        {record.manual && (
+                          <span className="text-xs bg-purple-500/30 text-purple-300 px-2 py-1 rounded mt-1 inline-block">
+                            ✍️ Manual
+                          </span>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-green-400">{formatDuration(record.workDuration)}</p>
@@ -564,7 +812,6 @@ const TimeTrackerApp = () => {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
-        {/* Dynamic Island Widget */}
         <DynamicIslandWidget />
         
         <div className="h-16"></div>
@@ -584,7 +831,40 @@ const TimeTrackerApp = () => {
               Setări
             </h2>
 
-            <div className="space-y-4">
+            <div className="space-y-4 mb-6">
+              <div className="bg-blue-500/20 border border-blue-500/50 rounded-xl p-4">
+                <h3 className="font-bold mb-3 flex items-center gap-2">
+                  <Download className="w-5 h-5" />
+                  Backup & Restore
+                </h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={exportData}
+                    className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition"
+                  >
+                    <Download className="w-4 h-4" />
+                    Exportă Date (JSON)
+                  </button>
+                  
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={importData}
+                      className="hidden"
+                      id="import-file"
+                    />
+                    <div
+                      onClick={() => document.getElementById('import-file').click()}
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition cursor-pointer"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Importă Date (JSON)
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <button
                 onClick={resetCurrentSession}
                 className="w-full bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 text-white font-semibold py-4 px-6 rounded-xl transition"
@@ -600,7 +880,7 @@ const TimeTrackerApp = () => {
               </button>
             </div>
 
-            <div className="mt-8 space-y-4">
+            <div className="space-y-4">
               <div className="p-4 bg-white/5 rounded-xl text-sm">
                 <p className="font-semibold mb-3 text-blue-400">ℹ️ Informații Generale:</p>
                 <p className="text-gray-300">• Status: {isAtWork ? (isPaused ? 'În pauză' : 'Activ') : 'Inactiv'}</p>
@@ -613,6 +893,17 @@ const TimeTrackerApp = () => {
                 <p className="text-gray-300 text-xs ml-4 mt-1">{DEFAULT_LOCATION_1}</p>
                 <p className="text-gray-300 mt-2">• Locație 2: {loc2Count} sesiuni</p>
                 <p className="text-gray-300 text-xs ml-4 mt-1">{location2Custom}</p>
+              </div>
+
+              <div className="p-4 bg-purple-500/20 rounded-xl text-sm">
+                <p className="font-semibold mb-2 text-purple-400">💡 Cum să folosești Backup:</p>
+                <ol className="text-gray-300 space-y-1 text-xs list-decimal list-inside">
+                  <li>Exportă datele ÎNAINTE de update</li>
+                  <li>Salvează fișierul JSON pe iCloud/WhatsApp</li>
+                  <li>Instalează noua versiune a aplicației</li>
+                  <li>Importă fișierul JSON salvat</li>
+                  <li>Toate datele vor fi restaurate!</li>
+                </ol>
               </div>
             </div>
           </div>
@@ -633,3 +924,5 @@ const TimeTrackerApp = () => {
 };
 
 export default TimeTrackerApp;
+
+          
