@@ -1,0 +1,48 @@
+name: Build iOS App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Add iOS platform
+        run: npx cap add ios
+
+      - name: Copy web build
+        run: npx cap copy ios
+
+      - name: Build iOS app
+        run: |
+          cd ios/App
+          xcodebuild -scheme App -sdk iphoneos -configuration Release clean archive -archivePath $PWD/build/App.xcarchive
+
+      - name: Export .ipa (unsigned)
+        run: |
+          cd ios/App
+          mkdir -p $PWD/build/ipa
+          xcodebuild -exportArchive -archivePath $PWD/build/App.xcarchive -exportPath $PWD/build/ipa -exportOptionsPlist <(echo '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>method</key><string>development</string></dict></plist>')
+          ls -l $PWD/build/ipa
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: ios/App/build/ipa
