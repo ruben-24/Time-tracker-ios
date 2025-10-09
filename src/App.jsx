@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Play, Pause, StopCircle, History, Settings, MapPin, TrendingUp, ArrowLeft, Edit2, Check, X, Coffee, Download, Upload, PlusCircle, Calendar, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Clock, Play, Pause, StopCircle, History, Settings, MapPin, TrendingUp, ArrowLeft, 
+  Edit2, Check, X, Coffee, Download, Upload, PlusCircle, Calendar, Trash2 
+} from 'lucide-react';
 
 const DEFAULT_LOCATION_1 = "Wasserburger Str. 15a, 83119 Obing";
 const DEFAULT_LOCATION_2 = "Adresa personalizată";
 
 const TimeTrackerApp = () => {
+  // Stări principale
   const [activeLocation, setActiveLocation] = useState(1);
   const [location2Custom, setLocation2Custom] = useState(DEFAULT_LOCATION_2);
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [tempLocation, setTempLocation] = useState("");
-  
+
   const [isAtWork, setIsAtWork] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [startTime, setStartTime] = useState(null);
@@ -21,6 +25,27 @@ const TimeTrackerApp = () => {
   const [activeView, setActiveView] = useState('main');
   const [showManualEntry, setShowManualEntry] = useState(false);
 
+  // Ref pentru inputul manual
+  const manualInputRef = useRef(null);
+  const [manualHasFocused, setManualHasFocused] = useState(false);
+
+  // Focus automat pe iOS pentru Adaugă manual
+  useEffect(() => {
+    if (showManualEntry && !manualHasFocused) {
+      const timeout = setTimeout(() => {
+        manualInputRef.current?.focus();
+        setManualHasFocused(true);
+      }, 350);
+      return () => clearTimeout(timeout);
+    }
+  }, [showManualEntry, manualHasFocused]);
+
+  // Resetează focus-ul când se închide formularul
+  useEffect(() => {
+    if (!showManualEntry) setManualHasFocused(false);
+  }, [showManualEntry]);
+
+  // Funcții helper
   const getCurrentLocation = () => activeLocation === 1 ? DEFAULT_LOCATION_1 : location2Custom;
   const getLocationKey = () => activeLocation === 1 ? 'location1' : 'location2';
 
@@ -29,6 +54,7 @@ const TimeTrackerApp = () => {
     return Math.floor((currentTime - pauseStartTime) / 1000);
   };
 
+  // Load data from localStorage
   useEffect(() => {
     const savedData = localStorage.getItem('workTimeDataDual');
     if (savedData) {
@@ -52,6 +78,7 @@ const TimeTrackerApp = () => {
     }
   }, []);
 
+  // Save data to localStorage
   useEffect(() => {
     const data = {
       workRecords,
@@ -70,6 +97,7 @@ const TimeTrackerApp = () => {
     localStorage.setItem('workTimeDataDual', JSON.stringify(data));
   }, [isAtWork, isPaused, startTime, pauseStartTime, totalPauseTime, pauseHistory, workRecords, activeLocation, location2Custom]);
 
+  // Actualizare timp curent
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -77,6 +105,7 @@ const TimeTrackerApp = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Format functions
   const formatDuration = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -110,6 +139,7 @@ const TimeTrackerApp = () => {
     return Math.floor((current - startTime) / 1000) - totalPauseTime;
   };
 
+  // Funcții principale pentru start, pause, stop
   const startWork = () => {
     setIsAtWork(true);
     setStartTime(new Date());
@@ -256,7 +286,7 @@ const TimeTrackerApp = () => {
     reader.readAsText(file);
     event.target.value = '';
   };
-
+  // Dynamic Island Widget
   const DynamicIslandWidget = () => {
     if (!isPaused) return null;
     
@@ -279,6 +309,7 @@ const TimeTrackerApp = () => {
     );
   };
 
+  // Manual Entry Modal
   const ManualEntryModal = () => {
     const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
     const [manualStartHour, setManualStartHour] = useState('09');
@@ -592,6 +623,8 @@ const TimeTrackerApp = () => {
       </div>
     );
   };
+
+  // Main View Component
   const MainView = () => (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
       <DynamicIslandWidget />
@@ -792,18 +825,20 @@ const TimeTrackerApp = () => {
               Setări
             </button>
           </div>
-<div className="text-center text-sm text-gray-400">
-  {currentTime.toLocaleDateString('ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-  <br />
-  {currentTime.toLocaleTimeString('ro-RO')}
-</div>
- </div>
- </div>
+
+          <div className="text-center text-sm text-gray-400">
+            {currentTime.toLocaleDateString('ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            <br />
+            {currentTime.toLocaleTimeString('ro-RO')}
+          </div>
+        </div>
+      </div>
       
       <div className="h-8"></div>
     </div>
   );
 
+  // History View Component
   const HistoryView = () => {
     const currentRecords = workRecords[getLocationKey()] || [];
     const sortedRecords = [...currentRecords].sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
@@ -918,6 +953,7 @@ const TimeTrackerApp = () => {
     );
   };
 
+  // Settings View Component
   const SettingsView = () => {
     const loc1Count = workRecords.location1?.length || 0;
     const loc2Count = workRecords.location2?.length || 0;
@@ -1026,6 +1062,7 @@ const TimeTrackerApp = () => {
     );
   };
 
+  // Main Render - Router
   return (
     <>
       {activeView === 'main' && <MainView />}
@@ -1036,5 +1073,3 @@ const TimeTrackerApp = () => {
 };
 
 export default TimeTrackerApp;
-
-          
