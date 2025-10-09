@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "vite",
     "build": "vite build",
     "cap:add-ios": "npx cap add ios",
-    "cap:copy": "npx cap copy",
+    "cap:sync": "npx cap sync",
     "cap:open": "npx cap open ios"
   },
   "devDependencies": {
