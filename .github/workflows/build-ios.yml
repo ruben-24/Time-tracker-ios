@@ -32,17 +32,17 @@ jobs:
           npx cap add ios
           npx cap copy ios
 
-      - name: Install CocoaPods and Update Dependencies (FIX CALE)
+      - name: Install CocoaPods and Update Dependencies
+        # Folosim working-directory pentru a ne asigura ca suntem in ios/App
+        working-directory:./ios/App
         run: |
           sudo gem install cocoapods 
-          # NEAPARAT: Navigam in directorul exact unde se afla Podfile-ul.
-          cd ios/App
           pod update
 
       - name: Build iOS app (archive, unsigned)
+        # Folosim working-directory pentru a ne asigura ca suntem in ios
+        working-directory:./ios
         run: |
-          # Pentru xcodebuild, trebuie sa fim in directorul 'ios'
-          cd ios 
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -sdk iphoneos \
@@ -53,8 +53,9 @@ jobs:
             -archivePath $PWD/build/App.xcarchive
 
       - name: Export.ipa (unsigned)
+        # Folosim working-directory pentru a ne asigura ca suntem in ios
+        working-directory:./ios
         run: |
-          cd ios
           mkdir -p build/ipa
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
