@@ -43,39 +43,17 @@ jobs:
             DEVELOPMENT_TEAM="" \
             clean archive \
             -archivePath $PWD/build/App.xcarchive
-      - name: Create Export Options Plist
+      - name: Create IPA from Archive
         working-directory: ./ios/App
         run: |
-          cat > ExportOptions.plist << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>ad-hoc</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>compileBitcode</key>
-            <false/>
-            <key>signingCertificate</key>
-            <string>-</string>
-            <key>provisioningProfiles</key>
-            <dict/>
-          </dict>
-          </plist>
-          EOF
-      - name: Export.ipa (unsigned)
-        working-directory: ./ios/App
-        run: |
-          mkdir -p build/ipa
-          xcodebuild -exportArchive \
-            -archivePath build/App.xcarchive \
-            -exportPath build/ipa \
-            -exportOptionsPlist ExportOptions.plist \
-            -allowProvisioningUpdates
-          ls -l build/ipa
+          mkdir -p build/ipa/Payload
+          cp -r build/App.xcarchive/Products/Applications/App.app build/ipa/Payload/
+          cd build/ipa
+          zip -r App.ipa Payload
+          rm -rf Payload
+          ls -lh
       - name: Upload.ipa artifact
         uses: actions/upload-artifact@v4
         with:
           name: ios-build
-          path: ios/App/build/ipa
+          path: ios/App/build/ipa/App.ipa
