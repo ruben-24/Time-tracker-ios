@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Play, Pause, StopCircle, History, Settings, MapPin, TrendingUp, ArrowLeft, Edit2, Check, X } from 'lucide-react';
+import { Clock, Play, Pause, StopCircle, History, Settings, MapPin, TrendingUp, ArrowLeft, Edit2, Check, X, Coffee } from 'lucide-react';
 
 const DEFAULT_LOCATION_1 = "Wasserburger Str. 15a, 83119 Obing";
 const DEFAULT_LOCATION_2 = "Adresa personalizată";
@@ -22,6 +22,12 @@ const TimeTrackerApp = () => {
 
   const getCurrentLocation = () => activeLocation === 1 ? DEFAULT_LOCATION_1 : location2Custom;
   const getLocationKey = () => activeLocation === 1 ? 'location1' : 'location2';
+
+  // Calcul timp pauză curentă în secunde
+  const getCurrentPauseDuration = () => {
+    if (!isPaused || !pauseStartTime) return 0;
+    return Math.floor((currentTime - pauseStartTime) / 1000);
+  };
 
   useEffect(() => {
     const savedData = localStorage.getItem('workTimeDataDual');
@@ -82,6 +88,12 @@ const TimeTrackerApp = () => {
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatPauseTimer = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const formatExactTime = (date) => {
@@ -198,8 +210,34 @@ const TimeTrackerApp = () => {
     }
   };
 
+  // Dynamic Island Widget pentru pauză
+  const DynamicIslandWidget = () => {
+    if (!isPaused) return null;
+    
+    const pauseDuration = getCurrentPauseDuration();
+    
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-2">
+        <div className="bg-black rounded-full px-8 py-3 shadow-2xl border border-yellow-500/30 animate-pulse-slow">
+          <div className="flex items-center gap-3">
+            <Coffee className="w-5 h-5 text-yellow-400" />
+            <div className="text-center">
+              <div className="text-yellow-400 text-xs font-semibold mb-0.5">PAUZĂ</div>
+              <div className="text-white text-xl font-mono font-bold tracking-wider">
+                {formatPauseTimer(pauseDuration)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const MainView = () => (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+      {/* Dynamic Island Widget */}
+      <DynamicIslandWidget />
+      
       {/* Safe area top for iPhone notch/Dynamic Island */}
       <div className="h-16"></div>
       
@@ -286,6 +324,24 @@ const TimeTrackerApp = () => {
             </div>
           </div>
 
+          {/* Pause Timer Card - Vizibil doar în pauză */}
+          {isPaused && (
+            <div className="mb-6 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-lg rounded-2xl p-6 border-2 border-yellow-400/50 shadow-2xl animate-pulse-slow">
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <Coffee className="w-6 h-6 text-yellow-400" />
+                  <p className="text-yellow-400 text-lg font-bold">TIMER PAUZĂ</p>
+                </div>
+                <div className="text-7xl font-bold text-white mb-2 font-mono tracking-tight">
+                  {formatPauseTimer(getCurrentPauseDuration())}
+                </div>
+                <p className="text-yellow-200 text-sm">
+                  {Math.floor(getCurrentPauseDuration() / 60)} minute · {getCurrentPauseDuration() % 60} secunde
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Status Display */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-6 shadow-2xl">
             {!isAtWork ? (
@@ -301,12 +357,12 @@ const TimeTrackerApp = () => {
                 <div className="text-5xl font-bold mb-6">{formatDigitalTime(getCurrentSessionTime())}</div>
                 <div className="space-y-3 text-base">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">⏰ Lucrat:</span>
+                    <span className="text-gray-400">⏰ Timp lucrat:</span>
                     <span className="font-semibold">{formatDuration(getCurrentSessionTime())}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">☕ Pauză curentă:</span>
-                    <span className="font-semibold">{formatDuration(Math.floor((currentTime - pauseStartTime) / 1000))}</span>
+                    <span className="text-gray-400">⏸️ Pauze anterioare:</span>
+                    <span className="font-semibold">{formatDuration(totalPauseTime)}</span>
                   </div>
                 </div>
               </div>
@@ -405,6 +461,9 @@ const TimeTrackerApp = () => {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+        {/* Dynamic Island Widget */}
+        <DynamicIslandWidget />
+        
         <div className="h-16"></div>
         
         <div className="px-6 pb-10">
@@ -505,6 +564,9 @@ const TimeTrackerApp = () => {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+        {/* Dynamic Island Widget */}
+        <DynamicIslandWidget />
+        
         <div className="h-16"></div>
         
         <div className="px-6 pb-10">
