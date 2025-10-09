@@ -22,22 +22,26 @@ jobs:
         run: |
           npm install
           npm install @capacitor/ios
-          # Daca primesti eroarea ERESOLVE, foloseste linia de mai jos:
           # npm install --legacy-peer-deps 
           
       - name: Build web app
         run: npm run build
 
-      - name: Prepare iOS Project and Install Dependencies
+      - name: Prepare Capacitor iOS Project
         run: |
           npx cap add ios
           npx cap copy ios
+
+      - name: Install CocoaPods and Update Dependencies (FIX CALE)
+        run: |
           sudo gem install cocoapods 
-          cd ios
+          # NEAPARAT: Navigam in directorul exact unde se afla Podfile-ul.
+          cd ios/App
           pod update
 
       - name: Build iOS app (archive, unsigned)
         run: |
+          # Pentru xcodebuild, trebuie sa fim in directorul 'ios'
           cd ios 
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
@@ -48,7 +52,7 @@ jobs:
             clean archive \
             -archivePath $PWD/build/App.xcarchive
 
-      - name: Export .ipa (unsigned)
+      - name: Export.ipa (unsigned)
         run: |
           cd ios
           mkdir -p build/ipa
@@ -58,7 +62,7 @@ jobs:
             -exportOptionsPlist <(echo '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>method</key><string>development</string></dict></plist>')
           ls -l build/ipa
 
-      - name: Upload .ipa artifact
+      - name: Upload.ipa artifact
         uses: actions/upload-artifact@v4
         with:
           name: ios-build
