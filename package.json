@@ -1,0 +1,17 @@
+{
+  "name": "time-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "cap:add-ios": "npx cap add ios",
+    "cap:copy": "npx cap copy",
+    "cap:open": "npx cap open ios"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "@capacitor/core": "^5.0.0",
+    "@capacitor/cli": "^5.0.0"
+  }
+}
