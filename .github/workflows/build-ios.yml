@@ -38,7 +38,7 @@ jobs:
       - name: Install CocoaPods
         run: |
           sudo gem install cocoapods
-          cd ios
+          cd ios/App
           pod repo update
           pod install --repo-update
 
