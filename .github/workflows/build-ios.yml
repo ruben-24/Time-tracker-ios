@@ -20,6 +20,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install iOS Capacitor platform
+        run: npm install @capacitor/ios
+
       - name: Build web app
         run: npm run build
 
