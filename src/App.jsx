@@ -281,13 +281,20 @@ const TimeTrackerApp = () => {
 
   const ManualEntryModal = () => {
     const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
-    const [manualStartTime, setManualStartTime] = useState('09:00:00');
-    const [manualEndTime, setManualEndTime] = useState('17:00:00');
+    const [manualStartHour, setManualStartHour] = useState('09');
+    const [manualStartMinute, setManualStartMinute] = useState('00');
+    const [manualStartSecond, setManualStartSecond] = useState('00');
+    const [manualEndHour, setManualEndHour] = useState('17');
+    const [manualEndMinute, setManualEndMinute] = useState('00');
+    const [manualEndSecond, setManualEndSecond] = useState('00');
     const [manualLocation, setManualLocation] = useState(activeLocation);
     const [manualPauses, setManualPauses] = useState([]);
 
     const addManualPause = () => {
-      setManualPauses([...manualPauses, { start: '12:00:00', end: '12:30:00' }]);
+      setManualPauses([...manualPauses, { 
+        startHour: '12', startMinute: '00', startSecond: '00',
+        endHour: '12', endMinute: '30', endSecond: '00'
+      }]);
     };
 
     const updateManualPause = (index, field, value) => {
@@ -302,8 +309,11 @@ const TimeTrackerApp = () => {
 
     const saveManualEntry = () => {
       try {
-        const startDateTime = new Date(`${manualDate}T${manualStartTime}`);
-        const endDateTime = new Date(`${manualDate}T${manualEndTime}`);
+        const startTimeStr = `${manualStartHour.padStart(2, '0')}:${manualStartMinute.padStart(2, '0')}:${manualStartSecond.padStart(2, '0')}`;
+        const endTimeStr = `${manualEndHour.padStart(2, '0')}:${manualEndMinute.padStart(2, '0')}:${manualEndSecond.padStart(2, '0')}`;
+        
+        const startDateTime = new Date(`${manualDate}T${startTimeStr}`);
+        const endDateTime = new Date(`${manualDate}T${endTimeStr}`);
         
         if (endDateTime <= startDateTime) {
           alert('❌ Ora de final trebuie să fie după ora de start!');
@@ -313,8 +323,11 @@ const TimeTrackerApp = () => {
         const totalWorkSeconds = Math.floor((endDateTime - startDateTime) / 1000);
         
         const processedPauses = manualPauses.map(pause => {
-          const pauseStart = new Date(`${manualDate}T${pause.start}`);
-          const pauseEnd = new Date(`${manualDate}T${pause.end}`);
+          const pauseStartStr = `${pause.startHour.padStart(2, '0')}:${pause.startMinute.padStart(2, '0')}:${pause.startSecond.padStart(2, '0')}`;
+          const pauseEndStr = `${pause.endHour.padStart(2, '0')}:${pause.endMinute.padStart(2, '0')}:${pause.endSecond.padStart(2, '0')}`;
+          
+          const pauseStart = new Date(`${manualDate}T${pauseStartStr}`);
+          const pauseEnd = new Date(`${manualDate}T${pauseEndStr}`);
           const duration = Math.floor((pauseEnd - pauseStart) / 1000);
           
           return {
@@ -359,182 +372,220 @@ const TimeTrackerApp = () => {
     if (!showManualEntry) return null;
 
     return (
-      <div 
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        onClick={(e) => {
-          // Închide doar dacă apeși pe fundal, nu pe modal
-          if (e.target === e.currentTarget) {
-            setShowManualEntry(false);
-          }
-        }}
-      >
-        <div 
-          className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <PlusCircle className="w-6 h-6" />
-              Adaugă Sesiune Manual
-            </h3>
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowManualEntry(false);
-              }} 
-              className="text-gray-400 hover:text-white"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-300 mb-2">📅 Data:</label>
-              <input
-                type="date"
-                value={manualDate}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  setManualDate(e.target.value);
-                }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm text-gray-300 mb-2">🕐 Start:</label>
-                <input
-                  type="time"
-                  step="1"
-                  value={manualStartTime}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    setManualStartTime(e.target.value);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  onFocus={(e) => e.stopPropagation()}
-                  className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-300 mb-2">🕐 Final:</label>
-                <input
-                  type="time"
-                  step="1"
-                  value={manualEndTime}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    setManualEndTime(e.target.value);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  onFocus={(e) => e.stopPropagation()}
-                  className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-300 mb-2">📍 Locație:</label>
-              <select
-                value={manualLocation}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  setManualLocation(parseInt(e.target.value));
-                }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      <div className="fixed inset-0 bg-black/90 z-50 overflow-y-auto">
+        <div className="min-h-screen px-4 py-8">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 max-w-md mx-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <PlusCircle className="w-6 h-6" />
+                Adaugă Sesiune Manual
+              </h3>
+              <button 
+                onClick={() => setShowManualEntry(false)} 
+                className="text-gray-400 hover:text-white"
               >
-                <option value={1}>Locație 1</option>
-                <option value={2}>Locație 2</option>
-              </select>
+                <X className="w-6 h-6" />
+              </button>
             </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm text-gray-300">☕ Pauze:</label>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    addManualPause();
-                  }}
-                  className="text-xs bg-yellow-500 hover:bg-yellow-600 px-3 py-1 rounded-lg flex items-center gap-1"
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm text-gray-300 mb-2">📅 Data:</label>
+                <input
+                  type="date"
+                  value={manualDate}
+                  onChange={(e) => setManualDate(e.target.value)}
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-300 mb-2">🕐 Ora Start (HH:MM:SS):</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="23"
+                    value={manualStartHour}
+                    onChange={(e) => setManualStartHour(e.target.value)}
+                    placeholder="HH"
+                    className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={manualStartMinute}
+                    onChange={(e) => setManualStartMinute(e.target.value)}
+                    placeholder="MM"
+                    className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={manualStartSecond}
+                    onChange={(e) => setManualStartSecond(e.target.value)}
+                    placeholder="SS"
+                    className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-300 mb-2">🕐 Ora Final (HH:MM:SS):</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="23"
+                    value={manualEndHour}
+                    onChange={(e) => setManualEndHour(e.target.value)}
+                    placeholder="HH"
+                    className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={manualEndMinute}
+                    onChange={(e) => setManualEndMinute(e.target.value)}
+                    placeholder="MM"
+                    className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={manualEndSecond}
+                    onChange={(e) => setManualEndSecond(e.target.value)}
+                    placeholder="SS"
+                    className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-300 mb-2">📍 Locație:</label>
+                <select
+                  value={manualLocation}
+                  onChange={(e) => setManualLocation(parseInt(e.target.value))}
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <PlusCircle className="w-3 h-3" /> Adaugă Pauză
+                  <option value={1}>Locație 1</option>
+                  <option value={2}>Locație 2</option>
+                </select>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <label className="block text-sm text-gray-300">☕ Pauze:</label>
+                  <button
+                    onClick={addManualPause}
+                    className="text-xs bg-yellow-500 hover:bg-yellow-600 px-3 py-2 rounded-lg flex items-center gap-1"
+                  >
+                    <PlusCircle className="w-4 h-4" /> Adaugă
+                  </button>
+                </div>
+
+                {manualPauses.map((pause, index) => (
+                  <div key={index} className="bg-white/5 rounded-lg p-4 mb-3">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-sm text-yellow-400 font-semibold">Pauza {index + 1}</span>
+                      <button
+                        onClick={() => removeManualPause(index)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Start:</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            max="23"
+                            value={pause.startHour}
+                            onChange={(e) => updateManualPause(index, 'startHour', e.target.value)}
+                            placeholder="HH"
+                            className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={pause.startMinute}
+                            onChange={(e) => updateManualPause(index, 'startMinute', e.target.value)}
+                            placeholder="MM"
+                            className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={pause.startSecond}
+                            onChange={(e) => updateManualPause(index, 'startSecond', e.target.value)}
+                            placeholder="SS"
+                            className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Final:</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            max="23"
+                            value={pause.endHour}
+                            onChange={(e) => updateManualPause(index, 'endHour', e.target.value)}
+                            placeholder="HH"
+                            className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={pause.endMinute}
+                            onChange={(e) => updateManualPause(index, 'endMinute', e.target.value)}
+                            placeholder="MM"
+                            className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={pause.endSecond}
+                            onChange={(e) => updateManualPause(index, 'endSecond', e.target.value)}
+                            placeholder="SS"
+                            className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={saveManualEntry}
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2"
+                >
+                  <Check className="w-5 h-5" />
+                  Salvează
+                </button>
+                <button
+                  onClick={() => setShowManualEntry(false)}
+                  className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 rounded-xl"
+                >
+                  Anulează
                 </button>
               </div>
-
-              {manualPauses.map((pause, index) => (
-                <div key={index} className="bg-white/5 rounded-lg p-3 mb-2">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-yellow-400">Pauza {index + 1}</span>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        removeManualPause(index);
-                      }}
-                      className="text-red-400 hover:text-red-300"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="time"
-                      step="1"
-                      value={pause.start}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        updateManualPause(index, 'start', e.target.value);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      onFocus={(e) => e.stopPropagation()}
-                      className="px-2 py-1 bg-white/10 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                    />
-                    <input
-                      type="time"
-                      step="1"
-                      value={pause.end}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        updateManualPause(index, 'end', e.target.value);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      onFocus={(e) => e.stopPropagation()}
-                      className="px-2 py-1 bg-white/10 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex gap-2 pt-4">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  saveManualEntry();
-                }}
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
-              >
-                <Check className="w-5 h-5" />
-                Salvează
-              </button>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowManualEntry(false);
-                }}
-                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-xl"
-              >
-                Anulează
-              </button>
             </div>
           </div>
         </div>
