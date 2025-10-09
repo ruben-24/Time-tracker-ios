@@ -14,48 +14,33 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Node
-        uses: actions/setup-node@v4 # FIX SINTAXĂ: S-a folosit "/" în loc de ":"
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install Node Dependencies
         run: |
-          # 1. Instalează dependențele din package.json
           npm install
-          
-          # 2. Instalează pachetul nativ iOS (FIX PLATFORMĂ)
           npm install @capacitor/ios
-          
-          # SFAT: Dacă eroarea ERESOLVE persistă din cauza conflictului de versiuni
-          # între @capacitor/core (v5) și @capacitor/ios (v7), folosește:
-          # npm install --legacy-peer-deps
+          # Dacă primești eroarea ERESOLVE, folosește linia de mai jos în loc de cele de sus:
+          # npm install --legacy-peer-deps 
           
       - name: Build web app
         run: npm run build
 
       - name: Prepare Capacitor iOS Project
         run: |
-          # Adaugă platforma iOS (dacă nu e prezentă)
           npx cap add ios
-          # Copiază fișierele web în proiectul nativ
           npx cap copy ios
           
       - name: Install CocoaPods and Dependencies
         run: |
           sudo gem install cocoapods 
-          
-          # FIX WORKSPACE: Navighează în directorul 'ios'
-          cd ios
-          
-          # Rulează pod install pentru a genera App.xcworkspace
-          pod install
+          pod install --project-directory=ios
 
       - name: Build iOS app (archive, unsigned)
         run: |
-          # Intră în directorul iOS
           cd ios 
-          
-          # Folosește App.xcworkspace
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -sdk iphoneos \
@@ -67,7 +52,6 @@ jobs:
 
       - name: Export .ipa (unsigned)
         run: |
-          # Rămâi în directorul 'ios'
           mkdir -p build/ipa
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
