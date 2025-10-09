@@ -33,7 +33,6 @@ jobs:
           npx cap copy ios
           sudo gem install cocoapods 
           cd ios
-          cd ios/App
           pod repo update
           pod install --repo-update 
 
