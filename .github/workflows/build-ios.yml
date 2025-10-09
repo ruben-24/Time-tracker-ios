@@ -42,6 +42,21 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             clean archive \
             -archivePath $PWD/build/App.xcarchive
+      - name: Create Export Options Plist
+        working-directory: ./ios/App
+        run: |
+          cat > ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>development</string>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
       - name: Export.ipa (unsigned)
         working-directory: ./ios/App
         run: |
@@ -49,7 +64,7 @@ jobs:
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
             -exportPath build/ipa \
-            -exportOptionsPlist <(echo '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>method</key><string>development</string></dict></plist>')
+            -exportOptionsPlist ExportOptions.plist
           ls -l build/ipa
       - name: Upload.ipa artifact
         uses: actions/upload-artifact@v4
