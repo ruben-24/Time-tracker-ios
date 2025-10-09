@@ -22,21 +22,16 @@ jobs:
         run: |
           npm install
           npm install @capacitor/ios
-          # Daca primesti eroarea ERESOLVE din cauza conflictului de versiuni, foloseste:
           # npm install --legacy-peer-deps 
           
       - name: Build web app
         run: npm run build
 
-      - name: Prepare Capacitor iOS Project
+      - name: Prepare iOS Project and Install Dependencies
         run: |
           npx cap add ios
           npx cap copy ios
-
-      - name: Install CocoaPods and Dependencies
-        run: |
           sudo gem install cocoapods 
-          # Folosim 'pod update' pentru a asigura ca dependentele sunt la zi
           pod update --project-directory=ios
 
       - name: Build iOS app (archive, unsigned)
