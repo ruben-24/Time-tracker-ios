@@ -32,7 +32,10 @@ jobs:
           npx cap add ios
           npx cap copy ios
           sudo gem install cocoapods 
-          pod update --project-directory=ios
+          cd ios
+          cd ios/App
+          pod repo update
+          pod install --repo-update 
 
       - name: Build iOS app (archive, unsigned)
         run: |
