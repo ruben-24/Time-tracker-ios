@@ -33,14 +33,12 @@ jobs:
           npx cap copy ios
 
       - name: Install CocoaPods and Update Dependencies
-        # Folosim working-directory pentru a ne asigura ca suntem in ios/App
         working-directory:./ios/App
         run: |
           sudo gem install cocoapods 
           pod update
 
       - name: Build iOS app (archive, unsigned)
-        # Folosim working-directory pentru a ne asigura ca suntem in ios
         working-directory:./ios
         run: |
           xcodebuild -workspace App.xcworkspace \
@@ -53,7 +51,6 @@ jobs:
             -archivePath $PWD/build/App.xcarchive
 
       - name: Export.ipa (unsigned)
-        # Folosim working-directory pentru a ne asigura ca suntem in ios
         working-directory:./ios
         run: |
           mkdir -p build/ipa
