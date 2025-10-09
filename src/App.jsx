@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Clock, Play, Pause, StopCircle, History, Settings, MapPin, TrendingUp, ArrowLeft, 
   Edit2, Check, X, Coffee, Download, Upload, PlusCircle, Calendar, Trash2 
@@ -24,26 +24,6 @@ const TimeTrackerApp = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeView, setActiveView] = useState('main');
   const [showManualEntry, setShowManualEntry] = useState(false);
-
-  // Ref pentru inputul manual
-  const manualInputRef = useRef(null);
-  const [manualHasFocused, setManualHasFocused] = useState(false);
-
-  // Focus automat pe iOS pentru Adaugă manual
-  useEffect(() => {
-    if (showManualEntry && !manualHasFocused) {
-      const timeout = setTimeout(() => {
-        manualInputRef.current?.focus();
-        setManualHasFocused(true);
-      }, 350);
-      return () => clearTimeout(timeout);
-    }
-  }, [showManualEntry, manualHasFocused]);
-
-  // Resetează focus-ul când se închide formularul
-  useEffect(() => {
-    if (!showManualEntry) setManualHasFocused(false);
-  }, [showManualEntry]);
 
   // Funcții helper
   const getCurrentLocation = () => activeLocation === 1 ? DEFAULT_LOCATION_1 : location2Custom;
@@ -286,6 +266,7 @@ const TimeTrackerApp = () => {
     reader.readAsText(file);
     event.target.value = '';
   };
+
   // Dynamic Island Widget
   const DynamicIslandWidget = () => {
     if (!isPaused) return null;
@@ -309,7 +290,7 @@ const TimeTrackerApp = () => {
     );
   };
 
-  // Manual Entry Modal
+  // Manual Entry Modal - FĂRĂ AUTO-FOCUS
   const ManualEntryModal = () => {
     const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
     const [manualStartHour, setManualStartHour] = useState('09');
@@ -623,12 +604,10 @@ const TimeTrackerApp = () => {
       </div>
     );
   };
-
-  // Main View Component
+  // Main View Component - FĂRĂ butonul "Adaugă manual"
   const MainView = () => (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
       <DynamicIslandWidget />
-      <ManualEntryModal />
       
       <div className="h-16"></div>
       
@@ -838,7 +817,7 @@ const TimeTrackerApp = () => {
     </div>
   );
 
-  // History View Component
+  // History View Component - CU butonul "Adaugă Sesiune Manual"
   const HistoryView = () => {
     const currentRecords = workRecords[getLocationKey()] || [];
     const sortedRecords = [...currentRecords].sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
@@ -846,6 +825,7 @@ const TimeTrackerApp = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
         <DynamicIslandWidget />
+        <ManualEntryModal />
         
         <div className="h-16"></div>
         
