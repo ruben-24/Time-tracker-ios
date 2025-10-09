@@ -30,9 +30,9 @@ jobs:
         working-directory: ./ios/App
         run: |
           sudo gem install cocoapods 
-          pod update
+          pod install
       - name: Build iOS app (archive, unsigned)
-        working-directory: ./ios
+        working-directory: ./ios/App
         run: |
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
@@ -43,7 +43,7 @@ jobs:
             clean archive \
             -archivePath $PWD/build/App.xcarchive
       - name: Export.ipa (unsigned)
-        working-directory: ./ios
+        working-directory: ./ios/App
         run: |
           mkdir -p build/ipa
           xcodebuild -exportArchive \
@@ -55,4 +55,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-build
-          path: ios/build/ipa
+          path: ios/App/build/ipa
