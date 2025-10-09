@@ -1,0 +1,5 @@
+      - name: Install npm dependencies
+        run: |
+          npm install
+          # Adaugă manual instalarea pachetului Capacitor iOS
+          npm install @capacitor/ios
