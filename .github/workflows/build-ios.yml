@@ -1,9 +1,9 @@
-name: Build iOS Apps (Unsigned IPA)
+name: Build iOS App
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+  pull_request:
 
 jobs:
   build-ios:
@@ -18,13 +18,8 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
+      - name: Install npm dependencies
         run: npm install
-
-      - name: Install CocoaPods
-        run: |
-          cd ios/App
-          pod install --repo-update
 
       - name: Update Capacitor packages
         run: |
@@ -34,35 +29,41 @@ jobs:
       - name: Build web app
         run: npm run build
 
-      - name: Add iOS platform (ensure latest)
-        run: npx cap add ios || echo "iOS platform already added"
+      - name: Add iOS platform
+        run: npx cap add ios
 
       - name: Copy web build to iOS
         run: npx cap copy ios
 
-      - name: Build iOS app (unsigned)
+      - name: Install CocoaPods
         run: |
-          cd ios/App
+          cd ios
+          pod install --repo-update
+
+      - name: Build iOS app (archive, unsigned)
+        run: |
+          cd ios
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -sdk iphoneos \
             -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
             clean archive \
-            -archivePath $PWD/build/App.xcarchive \
-            CODE_SIGNING_ALLOWED=NO
+            -archivePath $PWD/build/App.xcarchive
 
-      - name: Export unsigned .ipa
+      - name: Export .ipa (unsigned)
         run: |
-          cd ios/App
+          cd ios
           mkdir -p build/ipa
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
             -exportPath build/ipa \
-            -exportOptionsPlist <(echo '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>method</key><string>development</string><key>signingStyle</key><string>manual</string></dict></plist>')
+            -exportOptionsPlist <(echo '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>method</key><string>development</string></dict></plist>')
           ls -l build/ipa
 
-      - name: Upload unsigned .ipa
+      - name: Upload .ipa artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ios-unsigned-ipa
-          path: ios/App/build/ipa
+          name: ios-build
+          path: ios/build/ipa
