@@ -15,3 +15,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Animație pentru pulse slow */
+@keyframes pulse-slow {
+  0%, 100% {​​​​​​​​​​​​​​​​
