@@ -1,23 +1,19 @@
 name: Build iOS App
-
 on:
   push:
     branches: [ main ]
   pull_request:
-
+    branches: [ main ]
 jobs:
   build-ios:
     runs-on: macos-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Install Node Dependencies
         run: |
           npm install
@@ -26,20 +22,17 @@ jobs:
           
       - name: Build web app
         run: npm run build
-
       - name: Prepare Capacitor iOS Project
         run: |
           npx cap add ios
           npx cap copy ios
-
       - name: Install CocoaPods and Update Dependencies
-        working-directory:./ios/App
+        working-directory: ./ios/App
         run: |
           sudo gem install cocoapods 
           pod update
-
       - name: Build iOS app (archive, unsigned)
-        working-directory:./ios
+        working-directory: ./ios
         run: |
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
@@ -49,9 +42,8 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             clean archive \
             -archivePath $PWD/build/App.xcarchive
-
       - name: Export.ipa (unsigned)
-        working-directory:./ios
+        working-directory: ./ios
         run: |
           mkdir -p build/ipa
           xcodebuild -exportArchive \
@@ -59,7 +51,6 @@ jobs:
             -exportPath build/ipa \
             -exportOptionsPlist <(echo '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>method</key><string>development</string></dict></plist>')
           ls -l build/ipa
-
       - name: Upload.ipa artifact
         uses: actions/upload-artifact@v4
         with:
