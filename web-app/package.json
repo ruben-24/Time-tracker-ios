@@ -7,24 +7,25 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && firebase deploy"
+    "deploy": "npm run build && firebase deploy",
+    "deploy:render": "npm run build"
   },
   "dependencies": {
-    "@vueuse/core": "^10.7.0",
-    "lucide-vue-next": "^0.303.0",
-    "pinia": "^2.1.7",
     "vue": "^3.4.0",
-    "vue-router": "^4.2.5"
+    "vue-router": "^4.2.5",
+    "pinia": "^2.1.7",
+    "@vueuse/core": "^10.7.0",
+    "lucide-vue-next": "^0.303.0"
   },
   "devDependencies": {
-    "@types/node": "^20.10.5",
     "@vitejs/plugin-vue": "^4.5.2",
+    "vite": "^5.0.8",
+    "typescript": "^5.3.3",
+    "vue-tsc": "^1.8.25",
+    "@types/node": "^20.10.5",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
-    "terser": "^5.44.0",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.8",
-    "vue-tsc": "^1.8.25"
+    "terser": "^5.24.0"
   }
 }

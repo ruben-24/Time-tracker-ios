@@ -29,12 +29,13 @@ echo -e "${GREEN}✅ Build completed successfully!${NC}"
 # Check deployment options
 echo -e "${YELLOW}🌐 Choose deployment option:${NC}"
 echo "1. Local preview (http://localhost:4173)"
-echo "2. Vercel"
-echo "3. Netlify"
-echo "4. GitHub Pages"
-echo "5. All platforms"
+echo "2. Render.com (Recomandat)"
+echo "3. Vercel"
+echo "4. Netlify"
+echo "5. GitHub Pages"
+echo "6. All platforms"
 
-read -p "Enter your choice (1-5): " choice
+read -p "Enter your choice (1-6): " choice
 
 case $choice in
     1)
@@ -42,6 +43,16 @@ case $choice in
         npm run preview
         ;;
     2)
+        echo -e "${BLUE}🚀 Deploying to Render.com...${NC}"
+        if command_exists render; then
+            ./render-deploy.sh
+        else
+            echo -e "${YELLOW}📦 Installing Render CLI...${NC}"
+            npm install -g @render/cli
+            ./render-deploy.sh
+        fi
+        ;;
+    3)
         if command_exists vercel; then
             echo -e "${BLUE}🚀 Deploying to Vercel...${NC}"
             vercel --prod
@@ -49,7 +60,7 @@ case $choice in
             echo -e "${RED}❌ Vercel CLI not installed. Install with: npm i -g vercel${NC}"
         fi
         ;;
-    3)
+    4)
         if command_exists netlify; then
             echo -e "${BLUE}🚀 Deploying to Netlify...${NC}"
             netlify deploy --prod --dir=dist
@@ -57,19 +68,23 @@ case $choice in
             echo -e "${RED}❌ Netlify CLI not installed. Install with: npm i -g netlify-cli${NC}"
         fi
         ;;
-    4)
+    5)
         echo -e "${BLUE}🚀 Deploying to GitHub Pages...${NC}"
         echo -e "${YELLOW}💡 Make sure you have GitHub Actions enabled and push to main branch${NC}"
         git add .
         git commit -m "Deploy to GitHub Pages"
         git push origin main
         ;;
-    5)
+    6)
         echo -e "${BLUE}🚀 Deploying to all platforms...${NC}"
         
         # Local preview
         echo -e "${YELLOW}Starting local preview...${NC}"
         npm run preview &
+        
+        # Render
+        echo -e "${YELLOW}Deploying to Render...${NC}"
+        ./render-deploy.sh
         
         # Vercel
         if command_exists vercel; then
