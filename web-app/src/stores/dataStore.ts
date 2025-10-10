@@ -1,77 +1,43 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { DataEntry, Category, DailyTimesheet, TimeTrackingStats } from '@/types'
+import type { WorkSession, Project, DailyTimesheet, TimeTrackingStats } from '@/types'
 
-export const useDataStore = defineStore('data', () => {
+export const useTimeTrackingStore = defineStore('timeTracking', () => {
   // State
-  const entries = ref<DataEntry[]>([])
-  const categories = ref<Category[]>([
+  const currentSession = ref<WorkSession | null>(null)
+  const workSessions = ref<WorkSession[]>([])
+  const dailyTimesheets = ref<DailyTimesheet[]>([])
+  const projects = ref<Project[]>([
     {
       id: '1',
-      name: 'Financiar',
-      color: '#10b981',
-      icon: 'DollarSign',
-      description: 'Tranzacții și date financiare',
-      hourlyRate: 50,
-      isActive: true
+      name: 'Proiect Principal',
+      color: '#0ea5e9',
+      description: 'Proiectul principal de lucru',
+      isActive: true,
+      hourlyRate: 50
     },
     {
       id: '2',
-      name: 'Personal',
-      color: '#8b5cf6',
-      icon: 'User',
-      description: 'Informații personale',
-      hourlyRate: 0,
-      isActive: true
+      name: 'Dezvoltare',
+      color: '#10b981',
+      description: 'Dezvoltare software',
+      isActive: true,
+      hourlyRate: 60
     },
     {
       id: '3',
-      name: 'Muncă',
-      color: '#f59e0b',
-      icon: 'Briefcase',
-      description: 'Date legate de muncă',
-      hourlyRate: 60,
-      isActive: true
-    },
-    {
-      id: '4',
-      name: 'Sănătate',
-      color: '#ef4444',
-      icon: 'Heart',
-      description: 'Informații medicale',
-      hourlyRate: 0,
-      isActive: true
+      name: 'Design',
+      color: '#8b5cf6',
+      description: 'Design și UI/UX',
+      isActive: true,
+      hourlyRate: 45
     }
   ])
-  const currentSession = ref<DataEntry | null>(null)
-  const dailyTimesheets = ref<DailyTimesheet[]>([])
 
   // Getters
-  const totalEntries = computed(() => entries.value.length)
-  
-  const entriesByCategory = computed(() => {
-    const grouped: Record<string, DataEntry[]> = {}
-    entries.value.forEach(entry => {
-      if (!grouped[entry.category]) {
-        grouped[entry.category] = []
-      }
-      grouped[entry.category].push(entry)
-    })
-    return grouped
-  })
-
-  const isWorking = computed(() => 
-    currentSession.value?.workSession?.type === 'work' && 
-    currentSession.value?.workSession?.status === 'active'
-  )
-  const isOnBreak = computed(() => 
-    currentSession.value?.workSession?.type === 'break' && 
-    currentSession.value?.workSession?.status === 'active'
-  )
-  const isOnLunch = computed(() => 
-    currentSession.value?.workSession?.type === 'lunch' && 
-    currentSession.value?.workSession?.status === 'active'
-  )
+  const isWorking = computed(() => currentSession.value?.type === 'work' && currentSession.value?.status === 'active')
+  const isOnBreak = computed(() => currentSession.value?.type === 'break' && currentSession.value?.status === 'active')
+  const isOnLunch = computed(() => currentSession.value?.type === 'lunch' && currentSession.value?.status === 'active')
   
   const todayTimesheet = computed(() => {
     const today = new Date().toISOString().split('T')[0]
