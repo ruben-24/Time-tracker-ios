@@ -24,6 +24,12 @@ jobs:
       - name: Build web assets
         run: npm run build
 
+      - name: Add iOS platform (if missing)
+        run: |
+          if [ ! -d ios ]; then
+            npx cap add ios
+          fi
+
       - name: Ensure CocoaPods
         run: |
           if ! command -v pod >/dev/null; then
