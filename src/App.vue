@@ -4,6 +4,12 @@
     <div class="fixed inset-0 bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-dark-900 dark:via-dark-800 dark:to-dark-900 opacity-50"></div>
     <div class="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_50%)] dark:bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05),transparent_50%)]"></div>
     
+    <!-- Mobile-specific styles -->
+    <div class="fixed inset-0 pointer-events-none">
+      <div class="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-white/80 to-transparent dark:from-dark-900/80"></div>
+      <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white/80 to-transparent dark:from-dark-900/80"></div>
+    </div>
+    
     <!-- Main Layout -->
     <div class="relative z-10 flex h-screen">
       <!-- Sidebar -->

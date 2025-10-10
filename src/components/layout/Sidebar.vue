@@ -1,5 +1,5 @@
 <template>
-  <aside class="w-64 bg-white/80 dark:bg-dark-800/80 backdrop-blur-lg border-r border-dark-200 dark:border-dark-700 flex flex-col">
+  <aside class="w-64 bg-white/80 dark:bg-dark-800/80 backdrop-blur-lg border-r border-dark-200 dark:border-dark-700 flex flex-col lg:block hidden">
     <!-- Logo Section -->
     <div class="p-6 border-b border-dark-200 dark:border-dark-700">
       <div class="flex items-center space-x-3">
