@@ -1,29 +1,32 @@
 {
-  "name": "time-tracker",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
+  "name": "time-tracker-pro",
+  "version": "3.0.0",
+  "description": "Time Tracker Pro - Vanilla JavaScript app optimized for iOS",
+  "main": "index.html",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "cap:add-ios": "npx cap add ios",
-    "cap:sync": "npx cap sync",
-    "cap:open": "npx cap open ios"
+    "start": "python3 -m http.server 8082",
+    "dev": "python3 -m http.server 8082",
+    "build": "echo 'No build needed - Vanilla JavaScript'",
+    "preview": "python3 -m http.server 8082"
+  },
+  "keywords": [
+    "time-tracker",
+    "ios",
+    "vanilla-javascript",
+    "mobile-app"
+  ],
+  "author": "Time Tracker Pro",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/time-tracker-ios.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "lucide-react": "^0.263.1"
-  },
-  "devDependencies": {
-    "vite": "^5.0.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "@capacitor/core": "^7.0.0",
-    "@capacitor/cli": "^7.0.0",
-    "@capacitor/ios": "^7.0.0",
-    "tailwindcss": "^3.4.0",
-    "postcss": "^8.4.35",
-    "autoprefixer": "^10.4.17"
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/ios": "^7.4.3"
   }
 }
