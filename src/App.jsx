@@ -1,8 +1,77 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Play, Pause, StopCircle, History, Settings, MapPin, TrendingUp, ArrowLeft, Edit2, Check, X, Coffee, Download, Upload, PlusCircle, Calendar, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Clock, Play, Pause, StopCircle, History, Settings, MapPin, TrendingUp, ArrowLeft, Edit2, Check, X, Coffee, Download, Upload, PlusCircle, Calendar, Trash2, AlertCircle, Info, Zap } from 'lucide-react';
 
+// Constants
 const DEFAULT_LOCATION_1 = "Wasserburger Str. 15a, 83119 Obing";
 const DEFAULT_LOCATION_2 = "Adresa personalizată";
+const STORAGE_KEY = 'workTimeDataDual';
+const APP_VERSION = '2.1.0';
+
+// Intra JN Configuration
+const INTRA_JN_CONFIG = {
+  companyName: "Intra JN",
+  maxWorkHours: 12,
+  minBreakDuration: 15, // minutes
+  maxBreakDuration: 60, // minutes
+  overtimeThreshold: 8, // hours
+  features: {
+    smartNotifications: true,
+    autoPause: false,
+    locationTracking: true,
+    dataAnalytics: true
+  }
+};
+
+// Utility Functions
+const formatDuration = (seconds) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${hours}h ${minutes}m`;
+};
+
+const formatDigitalTime = (seconds) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
+const formatPauseTimer = (seconds) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
+const formatExactTime = (date) => {
+  return new Date(date).toLocaleTimeString('ro-RO', { 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit' 
+  });
+};
+
+// Validation Functions
+const validateWorkSession = (startTime, endTime, pauses = []) => {
+  const errors = [];
+  
+  if (endTime <= startTime) {
+    errors.push('Ora de final trebuie să fie după ora de start!');
+  }
+  
+  const workDuration = Math.floor((endTime - startTime) / 1000);
+  const totalPauseDuration = pauses.reduce((sum, pause) => sum + pause.duration, 0);
+  const netWorkTime = workDuration - totalPauseDuration;
+  
+  if (netWorkTime < 0) {
+    errors.push('Timpul de pauză nu poate depăși timpul total de lucru!');
+  }
+  
+  if (netWorkTime > INTRA_JN_CONFIG.maxWorkHours * 3600) {
+    errors.push(`Timpul de lucru nu poate depăși ${INTRA_JN_CONFIG.maxWorkHours} ore!`);
+  }
+  
+  return { isValid: errors.length === 0, errors };
+};
 
 // COMPONENT SEPARAT PENTRU MANUAL ENTRY - IZOLAT DE RE-RENDERS
 const ManualEntryModal = ({ 
@@ -49,13 +118,6 @@ const ManualEntryModal = ({
       const startDateTime = new Date(`${manualDate}T${startTimeStr}`);
       const endDateTime = new Date(`${manualDate}T${endTimeStr}`);
       
-      if (endDateTime <= startDateTime) {
-        alert('❌ Ora de final trebuie să fie după ora de start!');
-        return;
-      }
-
-      const totalWorkSeconds = Math.floor((endDateTime - startDateTime) / 1000);
-      
       const processedPauses = manualPauses.map(pause => {
         const pauseStartStr = `${pause.startHour.padStart(2, '0')}:${pause.startMinute.padStart(2, '0')}:${pause.startSecond.padStart(2, '0')}`;
         const pauseEndStr = `${pause.endHour.padStart(2, '0')}:${pause.endMinute.padStart(2, '0')}:${pause.endSecond.padStart(2, '0')}`;
@@ -73,6 +135,14 @@ const ManualEntryModal = ({
         };
       });
 
+      // Validate the work session
+      const validation = validateWorkSession(startDateTime, endDateTime, processedPauses);
+      if (!validation.isValid) {
+        alert(`❌ ${validation.errors.join('\n')}`);
+        return;
+      }
+
+      const totalWorkSeconds = Math.floor((endDateTime - startDateTime) / 1000);
       const totalPauseDuration = processedPauses.reduce((sum, p) => sum + p.duration, 0);
       const workDuration = totalWorkSeconds - totalPauseDuration;
 
@@ -84,7 +154,9 @@ const ManualEntryModal = ({
         pauseDuration: totalPauseDuration,
         pauseHistory: processedPauses,
         location: manualLocation === 1 ? DEFAULT_LOCATION_1 : location2Custom,
-        manual: true
+        manual: true,
+        company: INTRA_JN_CONFIG.companyName,
+        version: APP_VERSION
       };
 
       const locationKey = manualLocation === 1 ? 'location1' : 'location2';
@@ -344,6 +416,8 @@ const TimeTrackerApp = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeView, setActiveView] = useState('main');
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const getCurrentLocation = () => activeLocation === 1 ? DEFAULT_LOCATION_1 : location2Custom;
   const getLocationKey = () => activeLocation === 1 ? 'location1' : 'location2';
@@ -353,8 +427,19 @@ const TimeTrackerApp = () => {
     return Math.floor((currentTime - pauseStartTime) / 1000);
   };
 
+  // Notification system
+  const addNotification = useCallback((message, type = 'info') => {
+    const id = Date.now();
+    const notification = { id, message, type, timestamp: new Date() };
+    setNotifications(prev => [notification, ...prev.slice(0, 4)]); // Keep only last 5
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
+  }, []);
+
+  // Load data from localStorage
   useEffect(() => {
-    const savedData = localStorage.getItem('workTimeDataDual');
+    const savedData = localStorage.getItem(STORAGE_KEY);
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -370,17 +455,28 @@ const TimeTrackerApp = () => {
           setTotalPauseTime(parsed.currentSession.totalPauseTime || 0);
           setPauseHistory(parsed.currentSession.pauseHistory || []);
         }
+        
+        // Show welcome notification for Intra JN
+        if (parsed.version !== APP_VERSION) {
+          addNotification(`Bun venit la ${INTRA_JN_CONFIG.companyName} Time Tracker v${APP_VERSION}!`, 'success');
+        }
       } catch (error) {
         console.error('Error loading data:', error);
+        addNotification('Eroare la încărcarea datelor salvate', 'error');
       }
+    } else {
+      addNotification(`Bun venit la ${INTRA_JN_CONFIG.companyName} Time Tracker!`, 'success');
     }
-  }, []);
+  }, [addNotification]);
 
+  // Save data to localStorage
   useEffect(() => {
     const data = {
       workRecords,
       location2Custom,
       activeLocation,
+      version: APP_VERSION,
+      company: INTRA_JN_CONFIG.companyName,
       currentSession: {
         location: activeLocation,
         isAtWork,
@@ -391,8 +487,26 @@ const TimeTrackerApp = () => {
         pauseHistory
       }
     };
-    localStorage.setItem('workTimeDataDual', JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [isAtWork, isPaused, startTime, pauseStartTime, totalPauseTime, pauseHistory, workRecords, activeLocation, location2Custom]);
+
+  // Smart notifications based on work patterns
+  useEffect(() => {
+    if (!isAtWork || !startTime) return;
+
+    const currentSessionTime = getCurrentSessionTime();
+    const hours = currentSessionTime / 3600;
+
+    // Overtime warning
+    if (hours >= INTRA_JN_CONFIG.overtimeThreshold && hours < INTRA_JN_CONFIG.overtimeThreshold + 0.1) {
+      addNotification(`⚠️ Ai atins ${INTRA_JN_CONFIG.overtimeThreshold} ore de lucru!`, 'warning');
+    }
+
+    // Maximum work hours warning
+    if (hours >= INTRA_JN_CONFIG.maxWorkHours && hours < INTRA_JN_CONFIG.maxWorkHours + 0.1) {
+      addNotification(`🚨 Ai atins limita maximă de ${INTRA_JN_CONFIG.maxWorkHours} ore!`, 'error');
+    }
+  }, [isAtWork, startTime, addNotification]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -401,32 +515,6 @@ const TimeTrackerApp = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const formatDuration = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
-  };
-
-  const formatDigitalTime = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const formatPauseTimer = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const formatExactTime = (date) => {
-    return new Date(date).toLocaleTimeString('ro-RO', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
-    });
-  };
 
   const getCurrentSessionTime = () => {
     if (!startTime) return 0;
@@ -440,6 +528,7 @@ const TimeTrackerApp = () => {
     setTotalPauseTime(0);
     setIsPaused(false);
     setPauseHistory([]);
+    addNotification(`🚀 Ai început lucrul la ${getCurrentLocation()}`, 'success');
   };
 
   const pauseWork = () => {
@@ -450,6 +539,7 @@ const TimeTrackerApp = () => {
       start: now.toISOString(),
       startFormatted: formatExactTime(now)
     }]);
+    addNotification('⏸️ Ai intrat în pauză', 'info');
   };
 
   const resumeWork = () => {
@@ -467,6 +557,7 @@ const TimeTrackerApp = () => {
       }
       setPauseHistory(updatedHistory);
       setPauseStartTime(null);
+      addNotification('▶️ Ai revenit la lucru', 'success');
     }
   };
 
@@ -482,7 +573,9 @@ const TimeTrackerApp = () => {
       workDuration,
       pauseDuration,
       pauseHistory,
-      location: getCurrentLocation()
+      location: getCurrentLocation(),
+      company: INTRA_JN_CONFIG.companyName,
+      version: APP_VERSION
     };
     
     const locationKey = getLocationKey();
@@ -491,12 +584,23 @@ const TimeTrackerApp = () => {
       [locationKey]: [...workRecords[locationKey], record]
     });
     
+    // Calculate work statistics
+    const hours = workDuration / 3600;
+    const isOvertime = hours > INTRA_JN_CONFIG.overtimeThreshold;
+    
     setIsAtWork(false);
     setIsPaused(false);
     setStartTime(null);
     setPauseStartTime(null);
     setTotalPauseTime(0);
     setPauseHistory([]);
+    
+    // Show completion notification
+    if (isOvertime) {
+      addNotification(`🏆 Program finalizat! ${formatDuration(workDuration)} (${hours.toFixed(1)}h) - OVERTIME!`, 'success');
+    } else {
+      addNotification(`✅ Program finalizat! ${formatDuration(workDuration)} (${hours.toFixed(1)}h)`, 'success');
+    }
   };
 
   const switchLocation = (loc) => {
@@ -579,6 +683,45 @@ const TimeTrackerApp = () => {
     event.target.value = '';
   };
 
+  // Notification Component
+  const NotificationPanel = () => {
+    if (notifications.length === 0) return null;
+
+    return (
+      <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
+        {notifications.map(notification => (
+          <div
+            key={notification.id}
+            className={`p-4 rounded-lg shadow-lg backdrop-blur-lg border-l-4 ${
+              notification.type === 'success' 
+                ? 'bg-green-500/20 border-green-500 text-green-100'
+                : notification.type === 'warning'
+                ? 'bg-yellow-500/20 border-yellow-500 text-yellow-100'
+                : notification.type === 'error'
+                ? 'bg-red-500/20 border-red-500 text-red-100'
+                : 'bg-blue-500/20 border-blue-500 text-blue-100'
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0">
+                {notification.type === 'success' && <Check className="w-5 h-5" />}
+                {notification.type === 'warning' && <AlertCircle className="w-5 h-5" />}
+                {notification.type === 'error' && <X className="w-5 h-5" />}
+                {notification.type === 'info' && <Info className="w-5 h-5" />}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">{notification.message}</p>
+                <p className="text-xs opacity-75 mt-1">
+                  {notification.timestamp.toLocaleTimeString('ro-RO')}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const DynamicIslandWidget = () => {
     if (!isPaused) return null;
     
@@ -603,6 +746,7 @@ const TimeTrackerApp = () => {
 
   const MainView = () => (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+      <NotificationPanel />
       <DynamicIslandWidget />
       <ManualEntryModal
         showManualEntry={showManualEntry}
@@ -620,8 +764,11 @@ const TimeTrackerApp = () => {
         <div className="max-w-md mx-auto">
           <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-3 mb-3">
-              <Clock className="w-8 h-8 text-blue-400" />
-              <h1 className="text-3xl font-bold">TIME TRACKER</h1>
+              <Zap className="w-8 h-8 text-blue-400" />
+              <div>
+                <h1 className="text-3xl font-bold">{INTRA_JN_CONFIG.companyName}</h1>
+                <p className="text-sm text-gray-400">Time Tracker v{APP_VERSION}</p>
+              </div>
             </div>
           </div>
 
@@ -828,6 +975,7 @@ const TimeTrackerApp = () => {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+        <NotificationPanel />
         <DynamicIslandWidget />
         <ManualEntryModal
           showManualEntry={showManualEntry}
@@ -951,6 +1099,7 @@ const TimeTrackerApp = () => {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+        <NotificationPanel />
         <DynamicIslandWidget />
         
         <div className="h-16"></div>
@@ -1024,6 +1173,8 @@ const TimeTrackerApp = () => {
                 <p className="font-semibold mb-3 text-blue-400">ℹ️ Informații Generale:</p>
                 <p className="text-gray-300">• Status: {isAtWork ? (isPaused ? 'În pauză' : 'Activ') : 'Inactiv'}</p>
                 <p className="text-gray-300">• Locație activă: {activeLocation === 1 ? 'Locație 1' : 'Locație 2'}</p>
+                <p className="text-gray-300">• Companie: {INTRA_JN_CONFIG.companyName}</p>
+                <p className="text-gray-300">• Versiune: {APP_VERSION}</p>
               </div>
 
               <div className="p-4 bg-white/5 rounded-xl text-sm">
@@ -1032,6 +1183,14 @@ const TimeTrackerApp = () => {
                 <p className="text-gray-300 text-xs ml-4 mt-1">{DEFAULT_LOCATION_1}</p>
                 <p className="text-gray-300 mt-2">• Locație 2: {loc2Count} sesiuni</p>
                 <p className="text-gray-300 text-xs ml-4 mt-1">{location2Custom}</p>
+              </div>
+
+              <div className="p-4 bg-yellow-500/20 rounded-xl text-sm">
+                <p className="font-semibold mb-2 text-yellow-400">⚙️ Configurație Intra JN:</p>
+                <p className="text-gray-300 text-xs">• Ore maxime: {INTRA_JN_CONFIG.maxWorkHours}h</p>
+                <p className="text-gray-300 text-xs">• Prag overtime: {INTRA_JN_CONFIG.overtimeThreshold}h</p>
+                <p className="text-gray-300 text-xs">• Pauză minimă: {INTRA_JN_CONFIG.minBreakDuration}min</p>
+                <p className="text-gray-300 text-xs">• Pauză maximă: {INTRA_JN_CONFIG.maxBreakDuration}min</p>
               </div>
 
               <div className="p-4 bg-purple-500/20 rounded-xl text-sm">
