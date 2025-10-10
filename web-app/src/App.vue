@@ -42,14 +42,14 @@
 <script setup lang="ts">
 import { onMounted, computed } from 'vue'
 import { useUIStore } from '@/stores/uiStore'
-import { useTimeTrackingStore } from '@/stores/dataStore'
+import { useDataStore } from '@/stores/dataStore'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import Header from '@/components/layout/Header.vue'
 import NotificationContainer from '@/components/ui/NotificationContainer.vue'
 import LoadingOverlay from '@/components/ui/LoadingOverlay.vue'
 
 const uiStore = useUIStore()
-const timeStore = useTimeTrackingStore()
+const dataStore = useDataStore()
 const { isDark, sidebarOpen, loading, initTheme } = uiStore
 
 onMounted(() => {

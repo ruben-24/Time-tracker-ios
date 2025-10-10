@@ -90,7 +90,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@/stores/uiStore'
-import { useTimeTrackingStore } from '@/stores/dataStore'
+import { useDataStore } from '@/stores/dataStore'
 import { 
   Menu, 
   Search, 
@@ -102,10 +102,10 @@ import {
 
 const router = useRouter()
 const uiStore = useUIStore()
-const timeStore = useTimeTrackingStore()
+const dataStore = useDataStore()
 
 const { currentView, toggleSidebar, unreadNotifications } = uiStore
-const { workSessions } = timeStore
+const { entries } = dataStore
 
 const searchQuery = ref('')
 const showMobileSearch = ref(false)
