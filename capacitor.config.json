@@ -1,0 +1,14 @@
+{
+  "appId": "com.timetracker.pro",
+  "appName": "Time Tracker Pro",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "automatic",
+    "scrollEnabled": true,
+    "backgroundColor": "#667eea"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
