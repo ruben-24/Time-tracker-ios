@@ -74,7 +74,7 @@ const validateWorkSession = (startTime, endTime, pauses = []) => {
 };
 
 // COMPONENT SEPARAT PENTRU MANUAL ENTRY - IZOLAT DE RE-RENDERS
-const ManualEntryModal = ({ 
+const ManualEntryModal = React.memo(({ 
   showManualEntry, 
   setShowManualEntry, 
   activeLocation, 
@@ -92,25 +92,57 @@ const ManualEntryModal = ({
   const [manualEndSecond, setManualEndSecond] = useState('00');
   const [manualLocation, setManualLocation] = useState(activeLocation);
   const [manualPauses, setManualPauses] = useState([]);
+  const [focusedInput, setFocusedInput] = useState(null);
 
-  const addManualPause = () => {
-    setManualPauses([...manualPauses, { 
+  // Reset form when modal opens
+  useEffect(() => {
+    if (showManualEntry) {
+      setManualDate(new Date().toISOString().split('T')[0]);
+      setManualStartHour('09');
+      setManualStartMinute('00');
+      setManualStartSecond('00');
+      setManualEndHour('17');
+      setManualEndMinute('00');
+      setManualEndSecond('00');
+      setManualLocation(activeLocation);
+      setManualPauses([]);
+      setFocusedInput(null);
+    }
+  }, [showManualEntry, activeLocation]);
+
+  // Prevent keyboard from disappearing by maintaining focus
+  useEffect(() => {
+    if (focusedInput && showManualEntry) {
+      const timer = setTimeout(() => {
+        const element = document.querySelector(`input[placeholder="${focusedInput.includes('HH') ? 'HH' : focusedInput.includes('MM') ? 'MM' : 'SS'}"]`);
+        if (element && document.activeElement !== element) {
+          element.focus();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [focusedInput, showManualEntry]);
+
+  const addManualPause = useCallback(() => {
+    setManualPauses(prev => [...prev, { 
       startHour: '12', startMinute: '00', startSecond: '00',
       endHour: '12', endMinute: '30', endSecond: '00'
     }]);
-  };
+  }, []);
 
-  const updateManualPause = (index, field, value) => {
-    const updated = [...manualPauses];
-    updated[index][field] = value;
-    setManualPauses(updated);
-  };
+  const updateManualPause = useCallback((index, field, value) => {
+    setManualPauses(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  }, []);
 
-  const removeManualPause = (index) => {
-    setManualPauses(manualPauses.filter((_, i) => i !== index));
-  };
+  const removeManualPause = useCallback((index) => {
+    setManualPauses(prev => prev.filter((_, i) => i !== index));
+  }, []);
 
-  const saveManualEntry = () => {
+  const saveManualEntry = useCallback(() => {
     try {
       const startTimeStr = `${manualStartHour.padStart(2, '0')}:${manualStartMinute.padStart(2, '0')}:${manualStartSecond.padStart(2, '0')}`;
       const endTimeStr = `${manualEndHour.padStart(2, '0')}:${manualEndMinute.padStart(2, '0')}:${manualEndSecond.padStart(2, '0')}`;
@@ -160,12 +192,12 @@ const ManualEntryModal = ({
       };
 
       const locationKey = manualLocation === 1 ? 'location1' : 'location2';
-      setWorkRecords({
-        ...workRecords,
-        [locationKey]: [...workRecords[locationKey], record].sort((a, b) => 
+      setWorkRecords(prev => ({
+        ...prev,
+        [locationKey]: [...prev[locationKey], record].sort((a, b) => 
           new Date(b.startTime) - new Date(a.startTime)
         )
-      });
+      }));
 
       alert('✅ Sesiune adăugată cu succes!');
       setShowManualEntry(false);
@@ -173,7 +205,37 @@ const ManualEntryModal = ({
       alert('❌ Eroare la salvare!');
       console.error(error);
     }
-  };
+  }, [manualDate, manualStartHour, manualStartMinute, manualStartSecond, manualEndHour, manualEndMinute, manualEndSecond, manualPauses, manualLocation, location2Custom, setWorkRecords, setShowManualEntry, formatExactTime]);
+
+  // Time input component to prevent re-renders
+  const TimeInput = React.memo(({ value, onChange, placeholder, onFocus, onBlur }) => (
+    <input
+      type="number"
+      min="0"
+      max={placeholder === "HH" ? "23" : "59"}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      placeholder={placeholder}
+      className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  ));
+
+  // Small time input for pauses
+  const SmallTimeInput = React.memo(({ value, onChange, placeholder, onFocus, onBlur }) => (
+    <input
+      type="number"
+      min="0"
+      max={placeholder === "HH" ? "23" : "59"}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      placeholder={placeholder}
+      className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+    />
+  ));
 
   if (!showManualEntry) return null;
 
@@ -208,32 +270,26 @@ const ManualEntryModal = ({
             <div>
               <label className="block text-sm text-gray-300 mb-2">🕐 Ora Start (HH:MM:SS):</label>
               <div className="grid grid-cols-3 gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  max="23"
+                <TimeInput
                   value={manualStartHour}
-                  onChange={(e) => setManualStartHour(e.target.value)}
+                  onChange={setManualStartHour}
                   placeholder="HH"
-                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onFocus={() => setFocusedInput('startHour')}
+                  onBlur={() => setFocusedInput(null)}
                 />
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
+                <TimeInput
                   value={manualStartMinute}
-                  onChange={(e) => setManualStartMinute(e.target.value)}
+                  onChange={setManualStartMinute}
                   placeholder="MM"
-                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onFocus={() => setFocusedInput('startMinute')}
+                  onBlur={() => setFocusedInput(null)}
                 />
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
+                <TimeInput
                   value={manualStartSecond}
-                  onChange={(e) => setManualStartSecond(e.target.value)}
+                  onChange={setManualStartSecond}
                   placeholder="SS"
-                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onFocus={() => setFocusedInput('startSecond')}
+                  onBlur={() => setFocusedInput(null)}
                 />
               </div>
             </div>
@@ -241,32 +297,26 @@ const ManualEntryModal = ({
             <div>
               <label className="block text-sm text-gray-300 mb-2">🕐 Ora Final (HH:MM:SS):</label>
               <div className="grid grid-cols-3 gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  max="23"
+                <TimeInput
                   value={manualEndHour}
-                  onChange={(e) => setManualEndHour(e.target.value)}
+                  onChange={setManualEndHour}
                   placeholder="HH"
-                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onFocus={() => setFocusedInput('endHour')}
+                  onBlur={() => setFocusedInput(null)}
                 />
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
+                <TimeInput
                   value={manualEndMinute}
-                  onChange={(e) => setManualEndMinute(e.target.value)}
+                  onChange={setManualEndMinute}
                   placeholder="MM"
-                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onFocus={() => setFocusedInput('endMinute')}
+                  onBlur={() => setFocusedInput(null)}
                 />
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
+                <TimeInput
                   value={manualEndSecond}
-                  onChange={(e) => setManualEndSecond(e.target.value)}
+                  onChange={setManualEndSecond}
                   placeholder="SS"
-                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onFocus={() => setFocusedInput('endSecond')}
+                  onBlur={() => setFocusedInput(null)}
                 />
               </div>
             </div>
@@ -310,32 +360,26 @@ const ManualEntryModal = ({
                     <div>
                       <p className="text-xs text-gray-400 mb-1">Start:</p>
                       <div className="grid grid-cols-3 gap-2">
-                        <input
-                          type="number"
-                          min="0"
-                          max="23"
+                        <SmallTimeInput
                           value={pause.startHour}
-                          onChange={(e) => updateManualPause(index, 'startHour', e.target.value)}
+                          onChange={(value) => updateManualPause(index, 'startHour', value)}
                           placeholder="HH"
-                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                          onFocus={() => setFocusedInput(`pause-${index}-startHour`)}
+                          onBlur={() => setFocusedInput(null)}
                         />
-                        <input
-                          type="number"
-                          min="0"
-                          max="59"
+                        <SmallTimeInput
                           value={pause.startMinute}
-                          onChange={(e) => updateManualPause(index, 'startMinute', e.target.value)}
+                          onChange={(value) => updateManualPause(index, 'startMinute', value)}
                           placeholder="MM"
-                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                          onFocus={() => setFocusedInput(`pause-${index}-startMinute`)}
+                          onBlur={() => setFocusedInput(null)}
                         />
-                        <input
-                          type="number"
-                          min="0"
-                          max="59"
+                        <SmallTimeInput
                           value={pause.startSecond}
-                          onChange={(e) => updateManualPause(index, 'startSecond', e.target.value)}
+                          onChange={(value) => updateManualPause(index, 'startSecond', value)}
                           placeholder="SS"
-                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                          onFocus={() => setFocusedInput(`pause-${index}-startSecond`)}
+                          onBlur={() => setFocusedInput(null)}
                         />
                       </div>
                     </div>
@@ -343,32 +387,26 @@ const ManualEntryModal = ({
                     <div>
                       <p className="text-xs text-gray-400 mb-1">Final:</p>
                       <div className="grid grid-cols-3 gap-2">
-                        <input
-                          type="number"
-                          min="0"
-                          max="23"
+                        <SmallTimeInput
                           value={pause.endHour}
-                          onChange={(e) => updateManualPause(index, 'endHour', e.target.value)}
+                          onChange={(value) => updateManualPause(index, 'endHour', value)}
                           placeholder="HH"
-                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                          onFocus={() => setFocusedInput(`pause-${index}-endHour`)}
+                          onBlur={() => setFocusedInput(null)}
                         />
-                        <input
-                          type="number"
-                          min="0"
-                          max="59"
+                        <SmallTimeInput
                           value={pause.endMinute}
-                          onChange={(e) => updateManualPause(index, 'endMinute', e.target.value)}
+                          onChange={(value) => updateManualPause(index, 'endMinute', value)}
                           placeholder="MM"
-                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                          onFocus={() => setFocusedInput(`pause-${index}-endMinute`)}
+                          onBlur={() => setFocusedInput(null)}
                         />
-                        <input
-                          type="number"
-                          min="0"
-                          max="59"
+                        <SmallTimeInput
                           value={pause.endSecond}
-                          onChange={(e) => updateManualPause(index, 'endSecond', e.target.value)}
+                          onChange={(value) => updateManualPause(index, 'endSecond', value)}
                           placeholder="SS"
-                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                          onFocus={() => setFocusedInput(`pause-${index}-endSecond`)}
+                          onBlur={() => setFocusedInput(null)}
                         />
                       </div>
                     </div>
@@ -397,7 +435,7 @@ const ManualEntryModal = ({
       </div>
     </div>
   );
-};
+});
 
 // COMPONENTA PRINCIPALĂ
 const TimeTrackerApp = () => {
@@ -418,6 +456,17 @@ const TimeTrackerApp = () => {
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Memoize the manual entry modal props to prevent re-renders
+  const manualEntryProps = useMemo(() => ({
+    showManualEntry,
+    setShowManualEntry,
+    activeLocation,
+    location2Custom,
+    workRecords,
+    setWorkRecords,
+    formatExactTime
+  }), [showManualEntry, setShowManualEntry, activeLocation, location2Custom, workRecords, setWorkRecords, formatExactTime]);
 
   const getCurrentLocation = () => activeLocation === 1 ? DEFAULT_LOCATION_1 : location2Custom;
   const getLocationKey = () => activeLocation === 1 ? 'location1' : 'location2';
@@ -748,15 +797,7 @@ const TimeTrackerApp = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
       <NotificationPanel />
       <DynamicIslandWidget />
-      <ManualEntryModal
-        showManualEntry={showManualEntry}
-        setShowManualEntry={setShowManualEntry}
-        activeLocation={activeLocation}
-        location2Custom={location2Custom}
-        workRecords={workRecords}
-        setWorkRecords={setWorkRecords}
-        formatExactTime={formatExactTime}
-      />
+      <ManualEntryModal {...manualEntryProps} />
       
       <div className="h-16"></div>
       
@@ -977,15 +1018,7 @@ const TimeTrackerApp = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
         <NotificationPanel />
         <DynamicIslandWidget />
-        <ManualEntryModal
-          showManualEntry={showManualEntry}
-          setShowManualEntry={setShowManualEntry}
-          activeLocation={activeLocation}
-          location2Custom={location2Custom}
-          workRecords={workRecords}
-          setWorkRecords={setWorkRecords}
-          formatExactTime={formatExactTime}
-        />
+        <ManualEntryModal {...manualEntryProps} />
         
         <div className="h-16"></div>
         
