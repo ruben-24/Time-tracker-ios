@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.modernDataManager.app',
-  appName: 'Modern Data Manager',
+  appId: 'com.workTimeTracker.app',
+  appName: 'Work Time Tracker',
   webDir: 'dist',
   server: {
     androidScheme: 'https'

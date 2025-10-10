@@ -2,12 +2,12 @@
   <div class="space-y-8">
     <!-- Header -->
     <div>
-      <h1 class="text-3xl font-bold text-dark-900 dark:text-dark-100 mb-2">
-        Setări
-      </h1>
-      <p class="text-dark-600 dark:text-dark-400">
-        Personalizează aplicația conform preferințelor tale
-      </p>
+        <h1 class="text-3xl font-bold text-dark-900 dark:text-dark-100 mb-2">
+          Setări
+        </h1>
+        <p class="text-dark-600 dark:text-dark-400">
+          Configurează aplicația de contorizare a orelor de lucru
+        </p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -355,10 +355,9 @@ import { ref, computed } from 'vue'
 import { useUIStore } from '@/stores/uiStore'
 import { 
   Settings as SettingsIcon, 
-  Palette, 
-  Database, 
+  Clock, 
+  Folder, 
   Bell, 
-  Shield, 
   Info,
   Sun,
   Moon,
@@ -389,9 +388,9 @@ const currentTheme = computed(() => theme)
 
 const settingsSections = [
   { id: 'general', name: 'Generale', icon: SettingsIcon },
-  { id: 'data', name: 'Date', icon: Database },
+  { id: 'work', name: 'Lucru', icon: Clock },
   { id: 'notifications', name: 'Notificări', icon: Bell },
-  { id: 'security', name: 'Securitate', icon: Shield },
+  { id: 'projects', name: 'Proiecte', icon: Folder },
   { id: 'about', name: 'Despre', icon: Info }
 ]
 

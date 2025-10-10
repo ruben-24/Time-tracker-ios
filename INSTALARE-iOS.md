@@ -1,8 +1,8 @@
-# 📱 INSTALARE iOS - Modern Data Manager
+# 📱 INSTALARE iOS - Work Time Tracker
 
 ## 🎯 Aplicația este GATA pentru iOS!
 
-Aplicația Vue.js a fost convertită cu succes într-o aplicație iOS nativă care poate fi instalată prin **sideload** pe iPhone/iPad.
+Aplicația Vue.js pentru contorizarea orelor de lucru a fost convertită cu succes într-o aplicație iOS nativă care poate fi instalată prin **sideload** pe iPhone/iPad.
 
 ## 📦 Ce ai primit:
 

@@ -12,7 +12,7 @@
         
         <div class="hidden lg:block">
           <h2 class="text-2xl font-bold text-dark-900 dark:text-dark-100">{{ currentView }}</h2>
-          <p class="text-sm text-dark-500 dark:text-dark-400">Gestionare modernă a datelor</p>
+          <p class="text-sm text-dark-500 dark:text-dark-400">Contorizare ore de lucru</p>
         </div>
       </div>
       
@@ -23,7 +23,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Caută în date..."
+            placeholder="Caută în sesiuni..."
             class="w-full pl-10 pr-4 py-2 bg-dark-50 dark:bg-dark-700 border border-dark-200 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
             @input="handleSearch"
           />
@@ -77,7 +77,7 @@
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Caută în date..."
+            placeholder="Caută în sesiuni..."
           class="w-full pl-10 pr-4 py-2 bg-dark-50 dark:bg-dark-700 border border-dark-200 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
           @input="handleSearch"
         />
@@ -90,7 +90,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@/stores/uiStore'
-import { useDataStore } from '@/stores/dataStore'
+import { useTimeTrackingStore } from '@/stores/dataStore'
 import { 
   Menu, 
   Search, 
@@ -102,10 +102,10 @@ import {
 
 const router = useRouter()
 const uiStore = useUIStore()
-const dataStore = useDataStore()
+const timeStore = useTimeTrackingStore()
 
 const { currentView, toggleSidebar, unreadNotifications } = uiStore
-const { searchEntries } = dataStore
+const { workSessions } = timeStore
 
 const searchQuery = ref('')
 const showMobileSearch = ref(false)
@@ -117,7 +117,10 @@ const unreadCount = computed(() => unreadNotifications.length)
 
 const handleSearch = () => {
   if (searchQuery.value.trim()) {
-    const results = searchEntries(searchQuery.value)
+    const results = workSessions.filter(session => 
+      session.notes?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      session.project?.toLowerCase().includes(searchQuery.value.toLowerCase())
+    )
     console.log('Search results:', results)
     // Navigate to search results or show in modal
   }

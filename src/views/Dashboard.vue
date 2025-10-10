@@ -5,16 +5,41 @@
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold text-dark-900 dark:text-dark-100 mb-2">
-            Bun venit înapoi! 👋
+            Bună dimineața! ⏰
           </h1>
           <p class="text-dark-600 dark:text-dark-400 text-lg">
-            Iată o privire de ansamblu asupra datelor tale
+            Gata să începi să contorizezi orele de lucru?
           </p>
         </div>
         <div class="hidden md:block">
           <div class="w-24 h-24 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center animate-float">
-            <Database class="w-12 h-12 text-white" />
+            <Clock class="w-12 h-12 text-white" />
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current Status -->
+    <div v-if="currentSession" class="card p-6 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 border-primary-200 dark:border-primary-700">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center animate-pulse">
+            <component :is="getSessionIcon(currentSession.type)" class="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-primary-900 dark:text-primary-100">
+              {{ getSessionTitle(currentSession.type) }}
+            </h3>
+            <p class="text-primary-700 dark:text-primary-300">
+              {{ formatDuration(currentSessionDuration) }} - {{ formatTime(currentSession.startTime) }}
+            </p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-3xl font-bold text-primary-900 dark:text-primary-100">
+            {{ formatDuration(currentSessionDuration) }}
+          </p>
+          <p class="text-sm text-primary-700 dark:text-primary-300">Timp activ</p>
         </div>
       </div>
     </div>
@@ -24,66 +49,64 @@
       <div class="card p-6 card-hover">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Total Intrări</p>
-            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ totalEntries }}</p>
+            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Ore Lucrate Astăzi</p>
+            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ formatDuration(stats.today.workTime) }}</p>
           </div>
           <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-            <FileText class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <Clock class="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
         </div>
         <div class="mt-4 flex items-center text-sm text-green-600 dark:text-green-400">
           <TrendingUp class="w-4 h-4 mr-1" />
-          +12% față de luna trecută
+          {{ stats.today.sessions }} sesiuni
         </div>
       </div>
 
       <div class="card p-6 card-hover">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Categorii</p>
-            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ categories.length }}</p>
+            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Pauze Astăzi</p>
+            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ formatDuration(stats.today.breakTime) }}</p>
+          </div>
+          <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+            <Coffee class="w-6 h-6 text-orange-600 dark:text-orange-400" />
+          </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm text-dark-500 dark:text-dark-400">
+          <Pause class="w-4 h-4 mr-1" />
+          Pauze de lucru
+        </div>
+      </div>
+
+      <div class="card p-6 card-hover">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Ore Săptămâna Aceasta</p>
+            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ formatDuration(stats.thisWeek.workTime) }}</p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+            <Calendar class="w-6 h-6 text-green-600 dark:text-green-400" />
+          </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm text-dark-500 dark:text-dark-400">
+          <BarChart3 class="w-4 h-4 mr-1" />
+          {{ stats.thisWeek.days }} zile lucrate
+        </div>
+      </div>
+
+      <div class="card p-6 card-hover">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Proiecte Active</p>
+            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ activeProjects }}</p>
           </div>
           <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
             <Folder class="w-6 h-6 text-purple-600 dark:text-purple-400" />
           </div>
         </div>
         <div class="mt-4 flex items-center text-sm text-dark-500 dark:text-dark-400">
-          <Tag class="w-4 h-4 mr-1" />
-          Organizate eficient
-        </div>
-      </div>
-
-      <div class="card p-6 card-hover">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Valoare Totală</p>
-            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">
-              {{ totalValue.toLocaleString('ro-RO') }}
-            </p>
-          </div>
-          <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-            <DollarSign class="w-6 h-6 text-green-600 dark:text-green-400" />
-          </div>
-        </div>
-        <div class="mt-4 flex items-center text-sm text-green-600 dark:text-green-400">
-          <TrendingUp class="w-4 h-4 mr-1" />
-          +8% față de luna trecută
-        </div>
-      </div>
-
-      <div class="card p-6 card-hover">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Activități</p>
-            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ activeEntries }}</p>
-          </div>
-          <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-            <Activity class="w-6 h-6 text-orange-600 dark:text-orange-400" />
-          </div>
-        </div>
-        <div class="mt-4 flex items-center text-sm text-dark-500 dark:text-dark-400">
-          <Clock class="w-4 h-4 mr-1" />
-          În ultimele 24h
+          <Briefcase class="w-4 h-4 mr-1" />
+          Proiecte în lucru
         </div>
       </div>
     </div>
@@ -197,52 +220,65 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useDataStore } from '@/stores/dataStore'
+import { useTimeTrackingStore } from '@/stores/dataStore'
 import { 
-  Database, 
-  FileText, 
+  Clock, 
+  Calendar, 
   TrendingUp, 
   Folder, 
-  Tag, 
-  DollarSign, 
-  Activity, 
-  Clock, 
-  Plus, 
+  Coffee, 
+  Pause, 
+  Play, 
   BarChart3, 
+  Plus, 
   Download,
-  DollarSign as DollarIcon,
-  User,
   Briefcase,
-  Heart
+  Utensils,
+  Timer
 } from 'lucide-vue-next'
 
-const dataStore = useDataStore()
-const { entries, categories, totalEntries, getEntriesByCategory } = dataStore
+const timeStore = useTimeTrackingStore()
+const { currentSession, projects, stats, currentSessionDuration, todayTimesheet } = timeStore
 
-const recentEntries = computed(() => 
-  [...entries].sort((a, b) => b.date.getTime() - a.date.getTime())
+const activeProjects = computed(() => 
+  projects.filter(project => project.isActive).length
 )
 
-const totalValue = computed(() => 
-  entries.reduce((sum, entry) => sum + entry.value, 0)
+const recentSessions = computed(() => 
+  todayTimesheet.workSessions
+    .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
+    .slice(0, 5)
 )
 
-const activeEntries = computed(() => 
-  entries.filter(entry => entry.status === 'active').length
-)
-
-const getCategoryIcon = (categoryName: string) => {
-  const category = categories.find(cat => cat.name === categoryName || cat.id === categoryName)
-  if (!category) return FileText
-  
+const getSessionIcon = (type: string) => {
   const iconMap: Record<string, any> = {
-    'Financiar': DollarIcon,
-    'Personal': User,
-    'Muncă': Briefcase,
-    'Sănătate': Heart
+    'work': Play,
+    'break': Coffee,
+    'lunch': Utensils
   }
-  
-  return iconMap[category.name] || FileText
+  return iconMap[type] || Clock
+}
+
+const getSessionTitle = (type: string) => {
+  const titleMap: Record<string, string> = {
+    'work': 'Lucru în curs',
+    'break': 'Pauză activă',
+    'lunch': 'Pauză de masă'
+  }
+  return titleMap[type] || 'Sesiune activă'
+}
+
+const formatDuration = (minutes: number) => {
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+}
+
+const formatTime = (date: Date) => {
+  return date.toLocaleTimeString('ro-RO', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 const formatDate = (date: Date) => {

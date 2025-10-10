@@ -1,6 +1,6 @@
-# 🚀 Modern Data Manager
+# ⏰ Work Time Tracker
 
-O aplicație modernă și intuitivă pentru gestionarea datelor, construită cu Vue.js 3, TypeScript și Tailwind CSS.
+O aplicație modernă și intuitivă pentru contorizarea orelor de lucru și pauzelor, construită cu Vue.js 3, TypeScript și Tailwind CSS.
 
 ## ✨ Caracteristici
 
@@ -10,33 +10,33 @@ O aplicație modernă și intuitivă pentru gestionarea datelor, construită cu 
 - **Design responsive** optimizat pentru toate dispozitivele
 - **Animații smooth** și micro-interacțiuni
 
-### 📊 Gestionare Date Avansată
-- **Introducere date în 3 pași** cu validare completă
-- **Categorii personalizabile** cu culori și iconițe
-- **Sistem de etichete** pentru organizare eficientă
-- **Metadate JSON** pentru informații suplimentare
-- **Statusuri multiple** (Activ, Inactiv, În așteptare)
+### ⏰ Contorizare Timp Avansată
+- **Start/Stop pentru lucru** cu un click
+- **Pauze personalizabile** (pauză scurtă, pauză de masă)
+- **Sesiuni multiple** pe zi cu tracking automat
+- **Proiecte personalizabile** cu culori și descrieri
+- **Notițe** pentru fiecare sesiune de lucru
 
-### 📈 Analiză și Statistici
-- **Dashboard interactiv** cu statistici în timp real
-- **Grafice și diagrame** pentru vizualizarea datelor
-- **Tendințe lunare** și analize de creștere
-- **Distribuție pe categorii** cu procentaje
-- **Insight-uri automate** și recomandări
+### 📊 Timesheet și Rapoarte
+- **Timesheet zilnic/săptămânal** cu detalii complete
+- **Statistici în timp real** pentru orele lucrate
+- **Grafice interactive** pentru vizualizarea productivității
+- **Rapoarte detaliate** cu insight-uri de productivitate
+- **Export** în multiple formate (PDF, CSV)
 
 ### 🔧 Funcționalități Avansate
-- **Căutare inteligentă** în toate câmpurile
-- **Filtrare avansată** pe categorii și statusuri
-- **Paginare** pentru liste mari de date
-- **Export/Import** în multiple formate
-- **Backup automat** configurable
+- **Timer în timp real** cu afișare durată
+- **Pauză/Continuă** sesiuni active
+- **Căutare inteligentă** în sesiuni și proiecte
+- **Filtrare avansată** pe perioade și proiecte
+- **Notificări** pentru pauze și sfârșitul programului
 
 ### ⚙️ Setări Personalizabile
 - **Tema aplicației** (Luminos, Întunecat, Automat)
-- **Limba interfaței** (Română, English, Français, Deutsch)
-- **Format data** personalizabil
+- **Configurare program de lucru** (ore start/stop)
+- **Setări pauze** (durata, notificări)
+- **Gestionare proiecte** cu rate orare
 - **Notificări** configurabile
-- **Securitate** și gestionare sesiuni
 
 ## 🛠️ Tehnologii
 
@@ -97,40 +97,38 @@ npm run type-check
 ## 📱 Utilizare
 
 ### 1. Dashboard
-- **Vizualizare generală** a tuturor datelor
-- **Statistici rapide** și metrici importante
-- **Intrări recente** și activitate
-- **Acțiuni rapide** pentru operațiuni frecvente
+- **Vizualizare generală** a orelor de lucru
+- **Statistici rapide** pentru zi/săptămână
+- **Sesiunea curentă** cu timer în timp real
+- **Acțiuni rapide** pentru start/stop/pauză
 
-### 2. Introducere Date
-- **Formular în 3 pași**:
-  - **Pasul 1**: Informații de bază (titlu, categorie, descriere)
-  - **Pasul 2**: Valori și detalii (valoare, dată, status)
-  - **Pasul 3**: Etichete și metadate (tags, JSON suplimentar)
-- **Validare în timp real** cu mesaje de eroare
-- **Preview** al datelor înainte de salvare
+### 2. Contorizare Timp
+- **Start/Stop lucru** cu selectare proiect
+- **Pauze personalizabile** (pauză scurtă, pauză de masă)
+- **Timer în timp real** cu afișare durată
+- **Pauză/Continuă** sesiuni active
+- **Sesiuni recente** cu detalii complete
 
-### 3. Lista de Date
-- **Vizualizare tabelară** cu toate intrările
-- **Căutare** în timp real
-- **Filtrare** pe categorii și statusuri
-- **Sortare** ascendentă/descendentă
-- **Paginare** pentru performanță optimă
-- **Acțiuni** de editare și ștergere
+### 3. Timesheet
+- **Tabel detaliat** cu toate sesiunile
+- **Filtrare** pe perioade (zi/săptămână/lună)
+- **Căutare** în sesiuni și proiecte
+- **Rezumat zilnic** cu orele lucrate
+- **Export** în multiple formate
 
-### 4. Analiză
+### 4. Rapoarte
 - **Grafice interactive** pentru tendințe
-- **Distribuție pe categorii** cu procentaje
-- **Statistici detaliate** și metrici
-- **Export rapoarte** în multiple formate
+- **Distribuție pe proiecte** cu procentaje
+- **Statistici detaliate** de productivitate
 - **Insight-uri automate** și recomandări
+- **Export rapoarte** în PDF
 
 ### 5. Setări
+- **Configurare program de lucru**
+- **Gestionare proiecte** cu rate orare
+- **Setări notificări** pentru pauze
 - **Personalizare temă** și aspect
-- **Configurare notificări**
-- **Gestionare securitate**
-- **Import/Export date**
-- **Backup automat**
+- **Export/Import** configurații
 
 ## 🎯 Caracteristici Tehnice
 
@@ -208,4 +206,4 @@ Pentru întrebări sau suport:
 
 ---
 
-**Modern Data Manager** - Gestionarea datelor, reimaginată pentru vremea modernă! 🚀
+**Work Time Tracker** - Contorizarea orelor de lucru, reimaginată pentru vremea modernă! ⏰🚀

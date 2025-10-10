@@ -1,21 +1,33 @@
-export interface DataEntry {
+export interface WorkSession {
   id: string
-  title: string
-  description: string
-  category: string
-  value: number
-  date: Date
-  tags: string[]
-  status: 'active' | 'inactive' | 'pending'
-  metadata?: Record<string, any>
+  startTime: Date
+  endTime?: Date
+  duration: number // in minutes
+  type: 'work' | 'break' | 'lunch'
+  status: 'active' | 'completed' | 'paused'
+  notes?: string
+  project?: string
 }
 
-export interface Category {
+export interface DailyTimesheet {
+  id: string
+  date: string // YYYY-MM-DD
+  workSessions: WorkSession[]
+  totalWorkTime: number // in minutes
+  totalBreakTime: number // in minutes
+  totalLunchTime: number // in minutes
+  startTime?: Date
+  endTime?: Date
+  isCompleted: boolean
+}
+
+export interface Project {
   id: string
   name: string
   color: string
-  icon: string
   description?: string
+  isActive: boolean
+  hourlyRate?: number
 }
 
 export interface User {
@@ -23,38 +35,53 @@ export interface User {
   name: string
   email: string
   avatar?: string
+  workSettings: {
+    workDayStart: string // HH:MM
+    workDayEnd: string // HH:MM
+    breakDuration: number // in minutes
+    lunchDuration: number // in minutes
+    workDays: number[] // 0-6 (Sunday-Saturday)
+    autoBreakReminder: boolean
+    breakReminderInterval: number // in minutes
+  }
   preferences: {
     theme: 'light' | 'dark' | 'auto'
     language: string
     notifications: boolean
+    soundEnabled: boolean
   }
 }
 
-export interface AnalyticsData {
-  totalEntries: number
-  categoriesCount: Record<string, number>
-  monthlyTrend: Array<{
-    month: string
-    value: number
-  }>
-  topCategories: Array<{
-    category: string
-    count: number
-    percentage: number
-  }>
+export interface TimeTrackingStats {
+  today: {
+    workTime: number
+    breakTime: number
+    lunchTime: number
+    sessions: number
+  }
+  thisWeek: {
+    workTime: number
+    breakTime: number
+    lunchTime: number
+    days: number
+  }
+  thisMonth: {
+    workTime: number
+    breakTime: number
+    lunchTime: number
+    days: number
+  }
+  averageDaily: {
+    workTime: number
+    breakTime: number
+    lunchTime: number
+  }
 }
 
-export interface FormField {
-  id: string
-  label: string
-  type: 'text' | 'number' | 'email' | 'date' | 'select' | 'textarea' | 'checkbox' | 'radio'
-  required: boolean
-  placeholder?: string
-  options?: Array<{ value: string; label: string }>
-  validation?: {
-    min?: number
-    max?: number
-    pattern?: string
-    message?: string
-  }
+export interface NotificationSettings {
+  breakReminders: boolean
+  endOfDayReminder: boolean
+  overtimeWarning: boolean
+  weeklyReport: boolean
+  soundEnabled: boolean
 }
