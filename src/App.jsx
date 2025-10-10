@@ -4,32 +4,19 @@ import { Clock, Play, Pause, StopCircle, History, Settings, MapPin, TrendingUp, 
 // Constants
 const DEFAULT_LOCATION_1 = "Wasserburger Str. 15a, 83119 Obing";
 const DEFAULT_LOCATION_2 = "Adresa personalizată";
-const STORAGE_KEY = 'workTimeDataDual';
-const APP_VERSION = '2.1.0';
+const STORAGE_KEY = 'workTimeData';
+const APP_VERSION = '3.0.0';
 
-// Intra JN Configuration
-const INTRA_JN_CONFIG = {
-  companyName: "Intra JN",
-  maxWorkHours: 12,
-  minBreakDuration: 15, // minutes
-  maxBreakDuration: 60, // minutes
-  overtimeThreshold: 8, // hours
-  features: {
-    smartNotifications: true,
-    autoPause: false,
-    locationTracking: true,
-    dataAnalytics: true
-  }
+// iOS Detection
+const isIOS = () => {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 };
 
 // iOS Keyboard Management Hook
 const useIOSKeyboard = () => {
   useEffect(() => {
-    // Detect iOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    
-    if (isIOS) {
+    if (isIOS()) {
       // Prevent zoom on input focus
       const viewport = document.querySelector('meta[name=viewport]');
       if (viewport) {
@@ -39,7 +26,7 @@ const useIOSKeyboard = () => {
       // Add iOS-specific styles
       const style = document.createElement('style');
       style.textContent = `
-        input[type="number"] {
+        input[type="number"], input[type="date"], select {
           -webkit-appearance: none;
           -moz-appearance: textfield;
           appearance: none;
@@ -49,15 +36,21 @@ const useIOSKeyboard = () => {
           -webkit-appearance: none;
           margin: 0;
         }
-        input:focus {
+        input:focus, select:focus {
           -webkit-user-select: text;
           user-select: text;
+        }
+        .ios-input {
+          -webkit-appearance: none;
+          border-radius: 8px;
         }
       `;
       document.head.appendChild(style);
       
       return () => {
-        document.head.removeChild(style);
+        if (document.head.contains(style)) {
+          document.head.removeChild(style);
+        }
       };
     }
   }, []);
@@ -107,14 +100,72 @@ const validateWorkSession = (startTime, endTime, pauses = []) => {
     errors.push('Timpul de pauză nu poate depăși timpul total de lucru!');
   }
   
-  if (netWorkTime > INTRA_JN_CONFIG.maxWorkHours * 3600) {
-    errors.push(`Timpul de lucru nu poate depăși ${INTRA_JN_CONFIG.maxWorkHours} ore!`);
+  if (netWorkTime > 12 * 3600) { // 12 hours max
+    errors.push('Timpul de lucru nu poate depăși 12 ore!');
   }
   
   return { isValid: errors.length === 0, errors };
 };
 
-// COMPONENT SEPARAT PENTRU MANUAL ENTRY - IZOLAT DE RE-RENDERS
+// iOS-Optimized Input Component
+const IOSInput = React.memo(({ 
+  type = "number", 
+  value, 
+  onChange, 
+  placeholder, 
+  onFocus, 
+  onBlur, 
+  min, 
+  max, 
+  className = "",
+  ...props 
+}) => {
+  const handleFocus = useCallback((e) => {
+    e.preventDefault();
+    if (onFocus) onFocus();
+    
+    if (isIOS()) {
+      // Prevent keyboard from closing on iOS
+      e.target.setAttribute('readonly', 'readonly');
+      setTimeout(() => {
+        e.target.removeAttribute('readonly');
+      }, 100);
+    }
+  }, [onFocus]);
+
+  const handleBlur = useCallback((e) => {
+    e.preventDefault();
+    if (onBlur) onBlur();
+  }, [onBlur]);
+
+  const handleChange = useCallback((e) => {
+    onChange(e.target.value);
+  }, [onChange]);
+
+  return (
+    <input
+      type={type}
+      min={min}
+      max={max}
+      value={value}
+      onChange={handleChange}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      placeholder={placeholder}
+      className={`ios-input ${className}`}
+      style={{ 
+        WebkitAppearance: 'none',
+        MozAppearance: 'textfield',
+        appearance: 'none'
+      }}
+      inputMode={type === "number" ? "numeric" : undefined}
+      pattern={type === "number" ? "[0-9]*" : undefined}
+      {...props}
+    />
+  );
+});
+
+// Manual Entry Modal Component
 const ManualEntryModal = React.memo(({ 
   showManualEntry, 
   setShowManualEntry, 
@@ -151,32 +202,23 @@ const ManualEntryModal = React.memo(({
     }
   }, [showManualEntry, activeLocation]);
 
-  // iOS-specific focus handling
+  // iOS focus management
   useEffect(() => {
-    if (focusedInput && showManualEntry) {
-      // For iOS, we need to be more aggressive with focus management
+    if (focusedInput && showManualEntry && isIOS()) {
       const timer = setTimeout(() => {
         const element = document.querySelector(`input[placeholder="${focusedInput.includes('HH') ? 'HH' : focusedInput.includes('MM') ? 'MM' : 'SS'}"]`);
         if (element) {
-          // Force focus on iOS
           element.focus();
           element.click();
-          // Prevent blur events that cause keyboard to close
-          element.addEventListener('blur', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setTimeout(() => element.focus(), 10);
-          }, { once: true });
         }
-      }, 50); // Shorter timeout for iOS
+      }, 50);
       return () => clearTimeout(timer);
     }
   }, [focusedInput, showManualEntry]);
 
-  // iOS keyboard management
+  // Prevent body scroll on iOS
   useEffect(() => {
-    if (showManualEntry) {
-      // Prevent body scroll on iOS when modal is open
+    if (showManualEntry && isIOS()) {
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
@@ -253,7 +295,6 @@ const ManualEntryModal = React.memo(({
         pauseHistory: processedPauses,
         location: manualLocation === 1 ? DEFAULT_LOCATION_1 : location2Custom,
         manual: true,
-        company: INTRA_JN_CONFIG.companyName,
         version: APP_VERSION
       };
 
@@ -272,68 +313,6 @@ const ManualEntryModal = React.memo(({
       console.error(error);
     }
   }, [manualDate, manualStartHour, manualStartMinute, manualStartSecond, manualEndHour, manualEndMinute, manualEndSecond, manualPauses, manualLocation, location2Custom, setWorkRecords, setShowManualEntry, formatExactTime]);
-
-  // Time input component optimized for iOS
-  const TimeInput = React.memo(({ value, onChange, placeholder, onFocus, onBlur }) => (
-    <input
-      type="number"
-      min="0"
-      max={placeholder === "HH" ? "23" : "59"}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onFocus={(e) => {
-        e.preventDefault();
-        onFocus();
-        // iOS-specific: prevent keyboard from closing
-        e.target.setAttribute('readonly', 'readonly');
-        setTimeout(() => e.target.removeAttribute('readonly'), 100);
-      }}
-      onBlur={(e) => {
-        e.preventDefault();
-        onBlur();
-      }}
-      placeholder={placeholder}
-      className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-      style={{ 
-        WebkitAppearance: 'none',
-        MozAppearance: 'textfield',
-        appearance: 'none'
-      }}
-      inputMode="numeric"
-      pattern="[0-9]*"
-    />
-  ));
-
-  // Small time input for pauses - optimized for iOS
-  const SmallTimeInput = React.memo(({ value, onChange, placeholder, onFocus, onBlur }) => (
-    <input
-      type="number"
-      min="0"
-      max={placeholder === "HH" ? "23" : "59"}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onFocus={(e) => {
-        e.preventDefault();
-        onFocus();
-        // iOS-specific: prevent keyboard from closing
-        e.target.setAttribute('readonly', 'readonly');
-        setTimeout(() => e.target.removeAttribute('readonly'), 100);
-      }}
-      onBlur={(e) => {
-        e.preventDefault();
-        onBlur();
-      }}
-      placeholder={placeholder}
-      className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
-      style={{ 
-        WebkitAppearance: 'none',
-        MozAppearance: 'textfield',
-        appearance: 'none'
-      }}
-      inputMode="numeric"
-      pattern="[0-9]*"
-    />
-  ));
 
   if (!showManualEntry) return null;
 
@@ -374,48 +353,46 @@ const ManualEntryModal = React.memo(({
           <div className="space-y-5">
             <div>
               <label className="block text-sm text-gray-300 mb-2">📅 Data:</label>
-              <input
+              <IOSInput
                 type="date"
                 value={manualDate}
-                onChange={(e) => setManualDate(e.target.value)}
-                onFocus={(e) => {
-                  e.preventDefault();
-                  // iOS-specific: prevent keyboard from closing
-                  e.target.setAttribute('readonly', 'readonly');
-                  setTimeout(() => e.target.removeAttribute('readonly'), 100);
-                }}
+                onChange={setManualDate}
                 className="w-full px-3 py-3 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{ 
-                  WebkitAppearance: 'none',
-                  MozAppearance: 'textfield',
-                  appearance: 'none'
-                }}
               />
             </div>
 
             <div>
               <label className="block text-sm text-gray-300 mb-2">🕐 Ora Start (HH:MM:SS):</label>
               <div className="grid grid-cols-3 gap-2">
-                <TimeInput
+                <IOSInput
                   value={manualStartHour}
                   onChange={setManualStartHour}
                   placeholder="HH"
+                  min="0"
+                  max="23"
                   onFocus={() => setFocusedInput('startHour')}
                   onBlur={() => setFocusedInput(null)}
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <TimeInput
+                <IOSInput
                   value={manualStartMinute}
                   onChange={setManualStartMinute}
                   placeholder="MM"
+                  min="0"
+                  max="59"
                   onFocus={() => setFocusedInput('startMinute')}
                   onBlur={() => setFocusedInput(null)}
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <TimeInput
+                <IOSInput
                   value={manualStartSecond}
                   onChange={setManualStartSecond}
                   placeholder="SS"
+                  min="0"
+                  max="59"
                   onFocus={() => setFocusedInput('startSecond')}
                   onBlur={() => setFocusedInput(null)}
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -423,26 +400,35 @@ const ManualEntryModal = React.memo(({
             <div>
               <label className="block text-sm text-gray-300 mb-2">🕐 Ora Final (HH:MM:SS):</label>
               <div className="grid grid-cols-3 gap-2">
-                <TimeInput
+                <IOSInput
                   value={manualEndHour}
                   onChange={setManualEndHour}
                   placeholder="HH"
+                  min="0"
+                  max="23"
                   onFocus={() => setFocusedInput('endHour')}
                   onBlur={() => setFocusedInput(null)}
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <TimeInput
+                <IOSInput
                   value={manualEndMinute}
                   onChange={setManualEndMinute}
                   placeholder="MM"
+                  min="0"
+                  max="59"
                   onFocus={() => setFocusedInput('endMinute')}
                   onBlur={() => setFocusedInput(null)}
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <TimeInput
+                <IOSInput
                   value={manualEndSecond}
                   onChange={setManualEndSecond}
                   placeholder="SS"
+                  min="0"
+                  max="59"
                   onFocus={() => setFocusedInput('endSecond')}
                   onBlur={() => setFocusedInput(null)}
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -454,11 +440,12 @@ const ManualEntryModal = React.memo(({
                 onChange={(e) => setManualLocation(parseInt(e.target.value))}
                 onFocus={(e) => {
                   e.preventDefault();
-                  // iOS-specific: prevent keyboard from closing
-                  e.target.setAttribute('readonly', 'readonly');
-                  setTimeout(() => e.target.removeAttribute('readonly'), 100);
+                  if (isIOS()) {
+                    e.target.setAttribute('readonly', 'readonly');
+                    setTimeout(() => e.target.removeAttribute('readonly'), 100);
+                  }
                 }}
-                className="w-full px-3 py-3 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-3 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ios-input"
                 style={{ 
                   WebkitAppearance: 'none',
                   MozAppearance: 'textfield',
@@ -497,26 +484,35 @@ const ManualEntryModal = React.memo(({
                     <div>
                       <p className="text-xs text-gray-400 mb-1">Start:</p>
                       <div className="grid grid-cols-3 gap-2">
-                        <SmallTimeInput
+                        <IOSInput
                           value={pause.startHour}
                           onChange={(value) => updateManualPause(index, 'startHour', value)}
                           placeholder="HH"
+                          min="0"
+                          max="23"
                           onFocus={() => setFocusedInput(`pause-${index}-startHour`)}
                           onBlur={() => setFocusedInput(null)}
+                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
                         />
-                        <SmallTimeInput
+                        <IOSInput
                           value={pause.startMinute}
                           onChange={(value) => updateManualPause(index, 'startMinute', value)}
                           placeholder="MM"
+                          min="0"
+                          max="59"
                           onFocus={() => setFocusedInput(`pause-${index}-startMinute`)}
                           onBlur={() => setFocusedInput(null)}
+                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
                         />
-                        <SmallTimeInput
+                        <IOSInput
                           value={pause.startSecond}
                           onChange={(value) => updateManualPause(index, 'startSecond', value)}
                           placeholder="SS"
+                          min="0"
+                          max="59"
                           onFocus={() => setFocusedInput(`pause-${index}-startSecond`)}
                           onBlur={() => setFocusedInput(null)}
+                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
                         />
                       </div>
                     </div>
@@ -524,26 +520,35 @@ const ManualEntryModal = React.memo(({
                     <div>
                       <p className="text-xs text-gray-400 mb-1">Final:</p>
                       <div className="grid grid-cols-3 gap-2">
-                        <SmallTimeInput
+                        <IOSInput
                           value={pause.endHour}
                           onChange={(value) => updateManualPause(index, 'endHour', value)}
                           placeholder="HH"
+                          min="0"
+                          max="23"
                           onFocus={() => setFocusedInput(`pause-${index}-endHour`)}
                           onBlur={() => setFocusedInput(null)}
+                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
                         />
-                        <SmallTimeInput
+                        <IOSInput
                           value={pause.endMinute}
                           onChange={(value) => updateManualPause(index, 'endMinute', value)}
                           placeholder="MM"
+                          min="0"
+                          max="59"
                           onFocus={() => setFocusedInput(`pause-${index}-endMinute`)}
                           onBlur={() => setFocusedInput(null)}
+                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
                         />
-                        <SmallTimeInput
+                        <IOSInput
                           value={pause.endSecond}
                           onChange={(value) => updateManualPause(index, 'endSecond', value)}
                           placeholder="SS"
+                          min="0"
+                          max="59"
                           onFocus={() => setFocusedInput(`pause-${index}-endSecond`)}
                           onBlur={() => setFocusedInput(null)}
+                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
                         />
                       </div>
                     </div>
@@ -574,7 +579,7 @@ const ManualEntryModal = React.memo(({
   );
 });
 
-// COMPONENTA PRINCIPALĂ
+// Main App Component
 const TimeTrackerApp = () => {
   const [activeLocation, setActiveLocation] = useState(1);
   const [location2Custom, setLocation2Custom] = useState(DEFAULT_LOCATION_2);
@@ -592,12 +597,11 @@ const TimeTrackerApp = () => {
   const [activeView, setActiveView] = useState('main');
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   // iOS keyboard management
   useIOSKeyboard();
 
-  // Memoize the manual entry modal props to prevent re-renders
+  // Memoized props for ManualEntryModal
   const manualEntryProps = useMemo(() => ({
     showManualEntry,
     setShowManualEntry,
@@ -620,7 +624,7 @@ const TimeTrackerApp = () => {
   const addNotification = useCallback((message, type = 'info') => {
     const id = Date.now();
     const notification = { id, message, type, timestamp: new Date() };
-    setNotifications(prev => [notification, ...prev.slice(0, 4)]); // Keep only last 5
+    setNotifications(prev => [notification, ...prev.slice(0, 4)]);
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 5000);
@@ -645,16 +649,15 @@ const TimeTrackerApp = () => {
           setPauseHistory(parsed.currentSession.pauseHistory || []);
         }
         
-        // Show welcome notification for Intra JN
         if (parsed.version !== APP_VERSION) {
-          addNotification(`Bun venit la ${INTRA_JN_CONFIG.companyName} Time Tracker v${APP_VERSION}!`, 'success');
+          addNotification(`Aplicația a fost actualizată la versiunea ${APP_VERSION}!`, 'success');
         }
       } catch (error) {
         console.error('Error loading data:', error);
         addNotification('Eroare la încărcarea datelor salvate', 'error');
       }
     } else {
-      addNotification(`Bun venit la ${INTRA_JN_CONFIG.companyName} Time Tracker!`, 'success');
+      addNotification('Bun venit la Time Tracker!', 'success');
     }
   }, [addNotification]);
 
@@ -665,7 +668,6 @@ const TimeTrackerApp = () => {
       location2Custom,
       activeLocation,
       version: APP_VERSION,
-      company: INTRA_JN_CONFIG.companyName,
       currentSession: {
         location: activeLocation,
         isAtWork,
@@ -679,21 +681,19 @@ const TimeTrackerApp = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [isAtWork, isPaused, startTime, pauseStartTime, totalPauseTime, pauseHistory, workRecords, activeLocation, location2Custom]);
 
-  // Smart notifications based on work patterns
+  // Smart notifications
   useEffect(() => {
     if (!isAtWork || !startTime) return;
 
     const currentSessionTime = getCurrentSessionTime();
     const hours = currentSessionTime / 3600;
 
-    // Overtime warning
-    if (hours >= INTRA_JN_CONFIG.overtimeThreshold && hours < INTRA_JN_CONFIG.overtimeThreshold + 0.1) {
-      addNotification(`⚠️ Ai atins ${INTRA_JN_CONFIG.overtimeThreshold} ore de lucru!`, 'warning');
+    if (hours >= 8 && hours < 8.1) {
+      addNotification('⚠️ Ai atins 8 ore de lucru!', 'warning');
     }
 
-    // Maximum work hours warning
-    if (hours >= INTRA_JN_CONFIG.maxWorkHours && hours < INTRA_JN_CONFIG.maxWorkHours + 0.1) {
-      addNotification(`🚨 Ai atins limita maximă de ${INTRA_JN_CONFIG.maxWorkHours} ore!`, 'error');
+    if (hours >= 12 && hours < 12.1) {
+      addNotification('🚨 Ai atins limita maximă de 12 ore!', 'error');
     }
   }, [isAtWork, startTime, addNotification]);
 
@@ -703,7 +703,6 @@ const TimeTrackerApp = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-
 
   const getCurrentSessionTime = () => {
     if (!startTime) return 0;
@@ -763,19 +762,17 @@ const TimeTrackerApp = () => {
       pauseDuration,
       pauseHistory,
       location: getCurrentLocation(),
-      company: INTRA_JN_CONFIG.companyName,
       version: APP_VERSION
     };
     
     const locationKey = getLocationKey();
-    setWorkRecords({
-      ...workRecords,
-      [locationKey]: [...workRecords[locationKey], record]
-    });
+    setWorkRecords(prev => ({
+      ...prev,
+      [locationKey]: [...prev[locationKey], record]
+    }));
     
-    // Calculate work statistics
     const hours = workDuration / 3600;
-    const isOvertime = hours > INTRA_JN_CONFIG.overtimeThreshold;
+    const isOvertime = hours > 8;
     
     setIsAtWork(false);
     setIsPaused(false);
@@ -784,7 +781,6 @@ const TimeTrackerApp = () => {
     setTotalPauseTime(0);
     setPauseHistory([]);
     
-    // Show completion notification
     if (isOvertime) {
       addNotification(`🏆 Program finalizat! ${formatDuration(workDuration)} (${hours.toFixed(1)}h) - OVERTIME!`, 'success');
     } else {
@@ -821,7 +817,7 @@ const TimeTrackerApp = () => {
 
   const clearAllData = () => {
     if (window.confirm('ATENȚIE! Această acțiune va șterge TOATE datele. Ești sigur?')) {
-      localStorage.removeItem('workTimeDataDual');
+      localStorage.removeItem(STORAGE_KEY);
       setWorkRecords({ location1: [], location2: [] });
       resetCurrentSession();
     }
@@ -832,7 +828,7 @@ const TimeTrackerApp = () => {
       workRecords,
       location2Custom,
       exportDate: new Date().toISOString(),
-      version: '2.0'
+      version: APP_VERSION
     };
     
     const jsonString = JSON.stringify(data, null, 2);
@@ -846,7 +842,7 @@ const TimeTrackerApp = () => {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    alert('✅ Date exportate cu succes!');
+    addNotification('✅ Date exportate cu succes!', 'success');
   };
 
   const importData = (event) => {
@@ -861,10 +857,10 @@ const TimeTrackerApp = () => {
         if (window.confirm('Ești sigur? Datele curente vor fi ÎNLOCUITE cu cele din backup!')) {
           setWorkRecords(imported.workRecords || { location1: [], location2: [] });
           setLocation2Custom(imported.location2Custom || DEFAULT_LOCATION_2);
-          alert('✅ Date importate cu succes!');
+          addNotification('✅ Date importate cu succes!', 'success');
         }
       } catch (error) {
-        alert('❌ Eroare: Fișier invalid!');
+        addNotification('❌ Eroare: Fișier invalid!', 'error');
         console.error('Import error:', error);
       }
     };
@@ -947,8 +943,8 @@ const TimeTrackerApp = () => {
             <div className="flex items-center justify-center gap-3 mb-3">
               <Zap className="w-8 h-8 text-blue-400" />
               <div>
-                <h1 className="text-3xl font-bold">{INTRA_JN_CONFIG.companyName}</h1>
-                <p className="text-sm text-gray-400">Time Tracker v{APP_VERSION}</p>
+                <h1 className="text-3xl font-bold">TIME TRACKER</h1>
+                <p className="text-sm text-gray-400">v{APP_VERSION}</p>
               </div>
             </div>
           </div>
@@ -1003,7 +999,7 @@ const TimeTrackerApp = () => {
                     placeholder="Introdu adresa..."
                     className="w-full px-3 py-2 bg-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                    <div className="flex gap-2">
+                  <div className="flex gap-2">
                     <button
                       onClick={saveCustomLocation}
                       className="flex-1 bg-green-500 hover:bg-green-600 py-2 rounded-lg flex items-center justify-center gap-2"
@@ -1346,7 +1342,6 @@ const TimeTrackerApp = () => {
                 <p className="font-semibold mb-3 text-blue-400">ℹ️ Informații Generale:</p>
                 <p className="text-gray-300">• Status: {isAtWork ? (isPaused ? 'În pauză' : 'Activ') : 'Inactiv'}</p>
                 <p className="text-gray-300">• Locație activă: {activeLocation === 1 ? 'Locație 1' : 'Locație 2'}</p>
-                <p className="text-gray-300">• Companie: {INTRA_JN_CONFIG.companyName}</p>
                 <p className="text-gray-300">• Versiune: {APP_VERSION}</p>
               </div>
 
@@ -1356,14 +1351,6 @@ const TimeTrackerApp = () => {
                 <p className="text-gray-300 text-xs ml-4 mt-1">{DEFAULT_LOCATION_1}</p>
                 <p className="text-gray-300 mt-2">• Locație 2: {loc2Count} sesiuni</p>
                 <p className="text-gray-300 text-xs ml-4 mt-1">{location2Custom}</p>
-              </div>
-
-              <div className="p-4 bg-yellow-500/20 rounded-xl text-sm">
-                <p className="font-semibold mb-2 text-yellow-400">⚙️ Configurație Intra JN:</p>
-                <p className="text-gray-300 text-xs">• Ore maxime: {INTRA_JN_CONFIG.maxWorkHours}h</p>
-                <p className="text-gray-300 text-xs">• Prag overtime: {INTRA_JN_CONFIG.overtimeThreshold}h</p>
-                <p className="text-gray-300 text-xs">• Pauză minimă: {INTRA_JN_CONFIG.minBreakDuration}min</p>
-                <p className="text-gray-300 text-xs">• Pauză maximă: {INTRA_JN_CONFIG.maxBreakDuration}min</p>
               </div>
 
               <div className="p-4 bg-purple-500/20 rounded-xl text-sm">
