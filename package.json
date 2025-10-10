@@ -1,0 +1,29 @@
+{
+  "name": "time-tracker-pro",
+  "version": "3.0.0",
+  "description": "Time Tracker Pro - Vanilla JavaScript app optimized for iOS",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8082",
+    "dev": "python3 -m http.server 8082",
+    "build": "echo 'No build needed - Vanilla JavaScript'",
+    "preview": "python3 -m http.server 8082"
+  },
+  "keywords": [
+    "time-tracker",
+    "ios",
+    "vanilla-javascript",
+    "mobile-app"
+  ],
+  "author": "Time Tracker Pro",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/time-tracker-ios.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}
