@@ -22,6 +22,47 @@ const INTRA_JN_CONFIG = {
   }
 };
 
+// iOS Keyboard Management Hook
+const useIOSKeyboard = () => {
+  useEffect(() => {
+    // Detect iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    
+    if (isIOS) {
+      // Prevent zoom on input focus
+      const viewport = document.querySelector('meta[name=viewport]');
+      if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+      }
+      
+      // Add iOS-specific styles
+      const style = document.createElement('style');
+      style.textContent = `
+        input[type="number"] {
+          -webkit-appearance: none;
+          -moz-appearance: textfield;
+          appearance: none;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input:focus {
+          -webkit-user-select: text;
+          user-select: text;
+        }
+      `;
+      document.head.appendChild(style);
+      
+      return () => {
+        document.head.removeChild(style);
+      };
+    }
+  }, []);
+};
+
 // Utility Functions
 const formatDuration = (seconds) => {
   const hours = Math.floor(seconds / 3600);
@@ -110,18 +151,43 @@ const ManualEntryModal = React.memo(({
     }
   }, [showManualEntry, activeLocation]);
 
-  // Prevent keyboard from disappearing by maintaining focus
+  // iOS-specific focus handling
   useEffect(() => {
     if (focusedInput && showManualEntry) {
+      // For iOS, we need to be more aggressive with focus management
       const timer = setTimeout(() => {
         const element = document.querySelector(`input[placeholder="${focusedInput.includes('HH') ? 'HH' : focusedInput.includes('MM') ? 'MM' : 'SS'}"]`);
-        if (element && document.activeElement !== element) {
+        if (element) {
+          // Force focus on iOS
           element.focus();
+          element.click();
+          // Prevent blur events that cause keyboard to close
+          element.addEventListener('blur', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setTimeout(() => element.focus(), 10);
+          }, { once: true });
         }
-      }, 100);
+      }, 50); // Shorter timeout for iOS
       return () => clearTimeout(timer);
     }
   }, [focusedInput, showManualEntry]);
+
+  // iOS keyboard management
+  useEffect(() => {
+    if (showManualEntry) {
+      // Prevent body scroll on iOS when modal is open
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      
+      return () => {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+      };
+    }
+  }, [showManualEntry]);
 
   const addManualPause = useCallback(() => {
     setManualPauses(prev => [...prev, { 
@@ -207,7 +273,7 @@ const ManualEntryModal = React.memo(({
     }
   }, [manualDate, manualStartHour, manualStartMinute, manualStartSecond, manualEndHour, manualEndMinute, manualEndSecond, manualPauses, manualLocation, location2Custom, setWorkRecords, setShowManualEntry, formatExactTime]);
 
-  // Time input component to prevent re-renders
+  // Time input component optimized for iOS
   const TimeInput = React.memo(({ value, onChange, placeholder, onFocus, onBlur }) => (
     <input
       type="number"
@@ -215,14 +281,30 @@ const ManualEntryModal = React.memo(({
       max={placeholder === "HH" ? "23" : "59"}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      onFocus={onFocus}
-      onBlur={onBlur}
+      onFocus={(e) => {
+        e.preventDefault();
+        onFocus();
+        // iOS-specific: prevent keyboard from closing
+        e.target.setAttribute('readonly', 'readonly');
+        setTimeout(() => e.target.removeAttribute('readonly'), 100);
+      }}
+      onBlur={(e) => {
+        e.preventDefault();
+        onBlur();
+      }}
       placeholder={placeholder}
       className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+      style={{ 
+        WebkitAppearance: 'none',
+        MozAppearance: 'textfield',
+        appearance: 'none'
+      }}
+      inputMode="numeric"
+      pattern="[0-9]*"
     />
   ));
 
-  // Small time input for pauses
+  // Small time input for pauses - optimized for iOS
   const SmallTimeInput = React.memo(({ value, onChange, placeholder, onFocus, onBlur }) => (
     <input
       type="number"
@@ -230,19 +312,52 @@ const ManualEntryModal = React.memo(({
       max={placeholder === "HH" ? "23" : "59"}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      onFocus={onFocus}
-      onBlur={onBlur}
+      onFocus={(e) => {
+        e.preventDefault();
+        onFocus();
+        // iOS-specific: prevent keyboard from closing
+        e.target.setAttribute('readonly', 'readonly');
+        setTimeout(() => e.target.removeAttribute('readonly'), 100);
+      }}
+      onBlur={(e) => {
+        e.preventDefault();
+        onBlur();
+      }}
       placeholder={placeholder}
       className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+      style={{ 
+        WebkitAppearance: 'none',
+        MozAppearance: 'textfield',
+        appearance: 'none'
+      }}
+      inputMode="numeric"
+      pattern="[0-9]*"
     />
   ));
 
   if (!showManualEntry) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-50 overflow-y-auto">
-      <div className="min-h-screen px-4 py-8">
-        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 max-w-md mx-auto">
+    <div 
+      className="fixed inset-0 bg-black/90 z-50 overflow-y-auto"
+      style={{
+        WebkitOverflowScrolling: 'touch',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0
+      }}
+    >
+      <div className="min-h-screen px-4 py-8" style={{ minHeight: '100vh' }}>
+        <div 
+          className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 max-w-md mx-auto"
+          style={{
+            transform: 'translateZ(0)',
+            WebkitTransform: 'translateZ(0)',
+            willChange: 'transform'
+          }}
+        >
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xl font-bold text-white flex items-center gap-2">
               <PlusCircle className="w-6 h-6" />
@@ -263,7 +378,18 @@ const ManualEntryModal = React.memo(({
                 type="date"
                 value={manualDate}
                 onChange={(e) => setManualDate(e.target.value)}
+                onFocus={(e) => {
+                  e.preventDefault();
+                  // iOS-specific: prevent keyboard from closing
+                  e.target.setAttribute('readonly', 'readonly');
+                  setTimeout(() => e.target.removeAttribute('readonly'), 100);
+                }}
                 className="w-full px-3 py-3 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{ 
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'textfield',
+                  appearance: 'none'
+                }}
               />
             </div>
 
@@ -326,7 +452,18 @@ const ManualEntryModal = React.memo(({
               <select
                 value={manualLocation}
                 onChange={(e) => setManualLocation(parseInt(e.target.value))}
+                onFocus={(e) => {
+                  e.preventDefault();
+                  // iOS-specific: prevent keyboard from closing
+                  e.target.setAttribute('readonly', 'readonly');
+                  setTimeout(() => e.target.removeAttribute('readonly'), 100);
+                }}
                 className="w-full px-3 py-3 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{ 
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'textfield',
+                  appearance: 'none'
+                }}
               >
                 <option value={1}>Locație 1</option>
                 <option value={2}>Locație 2</option>
@@ -456,6 +593,9 @@ const TimeTrackerApp = () => {
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // iOS keyboard management
+  useIOSKeyboard();
 
   // Memoize the manual entry modal props to prevent re-renders
   const manualEntryProps = useMemo(() => ({
