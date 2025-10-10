@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debug Test</title>
+</head>
+<body>
+    <div id="app">
+        <h1>Loading...</h1>
+    </div>
+    <script type="module">
+        console.log('Debug script starting...');
+        
+        // Test basic functionality
+        const app = document.getElementById('app');
+        app.innerHTML = '<h1>Debug Test Working!</h1><p>JavaScript is working</p>';
+        
+        // Test Vue import
+        try {
+            const { createApp } = await import('vue');
+            console.log('Vue imported successfully');
+            app.innerHTML += '<p>✅ Vue imported successfully</p>';
+        } catch (error) {
+            console.error('Vue import failed:', error);
+            app.innerHTML += '<p>❌ Vue import failed: ' + error.message + '</p>';
+        }
+        
+        // Test Pinia import
+        try {
+            const { createPinia } = await import('pinia');
+            console.log('Pinia imported successfully');
+            app.innerHTML += '<p>✅ Pinia imported successfully</p>';
+        } catch (error) {
+            console.error('Pinia import failed:', error);
+            app.innerHTML += '<p>❌ Pinia import failed: ' + error.message + '</p>';
+        }
+        
+        // Test Vue Router import
+        try {
+            const { createRouter, createWebHistory } = await import('vue-router');
+            console.log('Vue Router imported successfully');
+            app.innerHTML += '<p>✅ Vue Router imported successfully</p>';
+        } catch (error) {
+            console.error('Vue Router import failed:', error);
+            app.innerHTML += '<p>❌ Vue Router import failed: ' + error.message + '</p>';
+        }
+    </script>
+</body>
+</html>
