@@ -1,13 +1,1151 @@
 <!DOCTYPE html>
 <html lang="ro">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Time Tracker Premium</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Time Tracker Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            max-width: 400px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            padding: 2rem 1rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .location-selector {
+            display: flex;
+            margin: 1rem;
+            gap: 0.5rem;
+        }
+
+        .location-btn {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .location-btn.active {
+            background: #4CAF50;
+            transform: scale(1.02);
+        }
+
+        .location-info {
+            margin: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .timer-display {
+            margin: 2rem 1rem;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+        }
+
+        .timer-time {
+            font-size: 3rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 1rem;
+        }
+
+        .timer-status {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .timer-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .timer-detail {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.8rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .timer-detail-label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-bottom: 0.3rem;
+        }
+
+        .timer-detail-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .control-buttons {
+            margin: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .btn {
+            padding: 1.2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #F57C00;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #da190b;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .nav-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+            margin: 1rem;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            z-index: 1000;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            margin: 2rem;
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .time-input {
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        .pause-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .pause-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .add-pause-btn {
+            background: #FF9800;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .pause-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .pause-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .remove-pause-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .history-date {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .history-duration {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4CAF50;
+            text-align: right;
+        }
+
+        .history-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .settings-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .settings-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .settings-info {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            z-index: 2000;
+            max-width: 300px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* iOS specific fixes */
+        input[type="number"] {
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
+        }
+
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input:focus {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        /* Prevent zoom on iOS */
+        @media screen and (-webkit-min-device-pixel-ratio: 0) {
+            select, textarea, input[type="text"], input[type="password"], 
+            input[type="datetime"], input[type="datetime-local"], 
+            input[type="date"], input[type="month"], input[type="time"], 
+            input[type="week"], input[type="number"], input[type="email"], 
+            input[type="url"], input[type="search"], input[type="tel"], 
+            input[type="color"] {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>⏰ Time Tracker Pro</h1>
+            <p>Urmărește-ți timpul de lucru cu ușurință</p>
+        </div>
+
+        <!-- Location Selector -->
+        <div class="location-selector">
+            <button class="location-btn active" data-location="1">
+                📍 Locația 1
+            </button>
+            <button class="location-btn" data-location="2">
+                📍 Locația 2
+            </button>
+        </div>
+
+        <!-- Location Info -->
+        <div class="location-info">
+            <div id="current-location">Wasserburger Str. 15a, 83119 Obing</div>
+        </div>
+
+        <!-- Timer Display -->
+        <div class="timer-display">
+            <div class="timer-time" id="timer-display">00:00:00</div>
+            <div class="timer-status" id="timer-status">Nu ești la muncă</div>
+            <div class="timer-details" id="timer-details" style="display: none;">
+                <div class="timer-detail">
+                    <div class="timer-detail-label">Început</div>
+                    <div class="timer-detail-value" id="start-time">-</div>
+                </div>
+                <div class="timer-detail">
+                    <div class="timer-detail-label">Pauze</div>
+                    <div class="timer-detail-value" id="pause-time">0h 0m</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="control-buttons">
+            <button class="btn btn-primary" id="start-btn">
+                ▶️ Începe Lucrul
+            </button>
+            <button class="btn btn-warning hidden" id="pause-btn">
+                ⏸️ Pauză
+            </button>
+            <button class="btn btn-primary hidden" id="resume-btn">
+                ▶️ Reia Lucrul
+            </button>
+            <button class="btn btn-danger hidden" id="stop-btn">
+                ⏹️ Încheie Programul
+            </button>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="nav-buttons">
+            <button class="btn btn-secondary" id="history-btn">
+                📊 Istoric
+            </button>
+            <button class="btn btn-secondary" id="settings-btn">
+                ⚙️ Setări
+            </button>
+        </div>
+
+        <!-- Manual Entry Button -->
+        <div class="control-buttons">
+            <button class="btn btn-secondary" id="manual-entry-btn">
+                ✍️ Adaugă Manual
+            </button>
+        </div>
+    </div>
+
+    <!-- Manual Entry Modal -->
+    <div class="modal-overlay" id="manual-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">✍️ Adaugă Sesiune Manual</h2>
+                <button class="close-btn" id="close-manual-modal">&times;</button>
+            </div>
+            
+            <form id="manual-form">
+                <div class="form-group">
+                    <label class="form-label">📅 Data</label>
+                    <input type="date" class="form-input" id="manual-date" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">🕐 Ora Start</label>
+                    <div class="time-inputs">
+                        <input type="number" class="form-input time-input" id="start-hour" placeholder="HH" min="0" max="23" required>
+                        <input type="number" class="form-input time-input" id="start-minute" placeholder="MM" min="0" max="59" required>
+                        <input type="number" class="form-input time-input" id="start-second" placeholder="SS" min="0" max="59" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">🕐 Ora Final</label>
+                    <div class="time-inputs">
+                        <input type="number" class="form-input time-input" id="end-hour" placeholder="HH" min="0" max="23" required>
+                        <input type="number" class="form-input time-input" id="end-minute" placeholder="MM" min="0" max="59" required>
+                        <input type="number" class="form-input time-input" id="end-second" placeholder="SS" min="0" max="59" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">📍 Locație</label>
+                    <select class="form-input" id="manual-location" required>
+                        <option value="1">Locația 1</option>
+                        <option value="2">Locația 2</option>
+                    </select>
+                </div>
+
+                <div class="pause-section">
+                    <div class="pause-header">
+                        <label class="form-label">☕ Pauze</label>
+                        <button type="button" class="add-pause-btn" id="add-pause-btn">+ Adaugă Pauză</button>
+                    </div>
+                    <div id="pauses-container"></div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-manual">Anulează</button>
+                    <button type="submit" class="btn btn-primary">💾 Salvează</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal-overlay" id="history-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📊 Istoric Detaliat</h2>
+                <button class="close-btn" id="close-history-modal">&times;</button>
+            </div>
+            <div id="history-content"></div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">⚙️ Setări</h2>
+                <button class="close-btn" id="close-settings-modal">&times;</button>
+            </div>
+            <div id="settings-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // Time Tracker App - Vanilla JavaScript
+        class TimeTracker {
+            constructor() {
+                this.currentLocation = 1;
+                this.locations = {
+                    1: "Wasserburger Str. 15a, 83119 Obing",
+                    2: "Adresa personalizată"
+                };
+                this.isWorking = false;
+                this.isPaused = false;
+                this.startTime = null;
+                this.pauseStartTime = null;
+                this.totalPauseTime = 0;
+                this.pauseHistory = [];
+                this.workRecords = { 1: [], 2: [] };
+                this.currentTime = new Date();
+                
+                this.init();
+            }
+
+            init() {
+                this.loadData();
+                this.setupEventListeners();
+                this.updateDisplay();
+                this.startTimer();
+                this.setTodayDate();
+            }
+
+            setupEventListeners() {
+                // Location buttons
+                document.querySelectorAll('.location-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const location = parseInt(e.target.dataset.location);
+                        this.switchLocation(location);
+                    });
+                });
+
+                // Control buttons
+                document.getElementById('start-btn').addEventListener('click', () => this.startWork());
+                document.getElementById('pause-btn').addEventListener('click', () => this.pauseWork());
+                document.getElementById('resume-btn').addEventListener('click', () => this.resumeWork());
+                document.getElementById('stop-btn').addEventListener('click', () => this.stopWork());
+
+                // Navigation buttons
+                document.getElementById('history-btn').addEventListener('click', () => this.showHistory());
+                document.getElementById('settings-btn').addEventListener('click', () => this.showSettings());
+                document.getElementById('manual-entry-btn').addEventListener('click', () => this.showManualEntry());
+
+                // Modal controls
+                document.getElementById('close-manual-modal').addEventListener('click', () => this.hideModal('manual-modal'));
+                document.getElementById('close-history-modal').addEventListener('click', () => this.hideModal('history-modal'));
+                document.getElementById('close-settings-modal').addEventListener('click', () => this.hideModal('settings-modal'));
+                document.getElementById('cancel-manual').addEventListener('click', () => this.hideModal('manual-modal'));
+
+                // Manual form
+                document.getElementById('manual-form').addEventListener('submit', (e) => this.saveManualEntry(e));
+                document.getElementById('add-pause-btn').addEventListener('click', () => this.addPause());
+
+                // Close modals on overlay click
+                document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                    overlay.addEventListener('click', (e) => {
+                        if (e.target === overlay) {
+                            this.hideModal(overlay.id);
+                        }
+                    });
+                });
+            }
+
+            startTimer() {
+                setInterval(() => {
+                    this.currentTime = new Date();
+                    this.updateDisplay();
+                }, 1000);
+            }
+
+            switchLocation(location) {
+                if (this.isWorking) {
+                    this.showNotification('Nu poți schimba locația în timpul programului!', 'warning');
+                    return;
+                }
+                
+                this.currentLocation = location;
+                document.querySelectorAll('.location-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-location="${location}"]`).classList.add('active');
+                document.getElementById('current-location').textContent = this.locations[location];
+                this.updateDisplay();
+            }
+
+            startWork() {
+                this.isWorking = true;
+                this.isPaused = false;
+                this.startTime = new Date();
+                this.totalPauseTime = 0;
+                this.pauseHistory = [];
+                this.updateButtons();
+                this.showNotification('🚀 Ai început lucrul!', 'success');
+                this.saveData();
+            }
+
+            pauseWork() {
+                this.isPaused = true;
+                this.pauseStartTime = new Date();
+                this.pauseHistory.push({
+                    start: this.pauseStartTime.toISOString(),
+                    startFormatted: this.formatTime(this.pauseStartTime)
+                });
+                this.updateButtons();
+                this.showNotification('⏸️ Ai intrat în pauză', 'info');
+                this.saveData();
+            }
+
+            resumeWork() {
+                if (this.pauseStartTime) {
+                    const pauseEnd = new Date();
+                    const pauseDuration = Math.floor((pauseEnd - this.pauseStartTime) / 1000);
+                    this.totalPauseTime += pauseDuration;
+                    
+                    if (this.pauseHistory.length > 0) {
+                        this.pauseHistory[this.pauseHistory.length - 1].end = pauseEnd.toISOString();
+                        this.pauseHistory[this.pauseHistory.length - 1].endFormatted = this.formatTime(pauseEnd);
+                        this.pauseHistory[this.pauseHistory.length - 1].duration = pauseDuration;
+                    }
+                    
+                    this.isPaused = false;
+                    this.pauseStartTime = null;
+                    this.updateButtons();
+                    this.showNotification('▶️ Ai revenit la lucru', 'success');
+                    this.saveData();
+                }
+            }
+
+            stopWork() {
+                const endTime = new Date();
+                const workDuration = this.getCurrentSessionTime();
+                const pauseDuration = this.totalPauseTime;
+                
+                const record = {
+                    date: this.startTime.toISOString().split('T')[0],
+                    startTime: this.startTime.toISOString(),
+                    endTime: endTime.toISOString(),
+                    workDuration,
+                    pauseDuration,
+                    pauseHistory: this.pauseHistory,
+                    location: this.locations[this.currentLocation],
+                    manual: false
+                };
+                
+                this.workRecords[this.currentLocation].unshift(record);
+                
+                this.isWorking = false;
+                this.isPaused = false;
+                this.startTime = null;
+                this.pauseStartTime = null;
+                this.totalPauseTime = 0;
+                this.pauseHistory = [];
+                
+                this.updateButtons();
+                this.showNotification(`✅ Program finalizat! ${this.formatDuration(workDuration)}`, 'success');
+                this.saveData();
+            }
+
+            getCurrentSessionTime() {
+                if (!this.startTime) return 0;
+                const current = this.isPaused ? this.pauseStartTime : this.currentTime;
+                return Math.floor((current - this.startTime) / 1000) - this.totalPauseTime;
+            }
+
+            getCurrentPauseDuration() {
+                if (!this.isPaused || !this.pauseStartTime) return 0;
+                return Math.floor((this.currentTime - this.pauseStartTime) / 1000);
+            }
+
+            updateDisplay() {
+                const sessionTime = this.getCurrentSessionTime();
+                const pauseDuration = this.getCurrentPauseDuration();
+                
+                document.getElementById('timer-display').textContent = this.formatTimeDigital(sessionTime);
+                
+                if (!this.isWorking) {
+                    document.getElementById('timer-status').textContent = 'Nu ești la muncă';
+                    document.getElementById('timer-details').style.display = 'none';
+                } else if (this.isPaused) {
+                    document.getElementById('timer-status').textContent = `În pauză - ${this.formatTimeDigital(pauseDuration)}`;
+                    document.getElementById('timer-details').style.display = 'grid';
+                    document.getElementById('start-time').textContent = this.formatTime(this.startTime);
+                    document.getElementById('pause-time').textContent = this.formatDuration(this.totalPauseTime);
+                } else {
+                    document.getElementById('timer-status').textContent = 'Lucrezi activ';
+                    document.getElementById('timer-details').style.display = 'grid';
+                    document.getElementById('start-time').textContent = this.formatTime(this.startTime);
+                    document.getElementById('pause-time').textContent = this.formatDuration(this.totalPauseTime);
+                }
+            }
+
+            updateButtons() {
+                const startBtn = document.getElementById('start-btn');
+                const pauseBtn = document.getElementById('pause-btn');
+                const resumeBtn = document.getElementById('resume-btn');
+                const stopBtn = document.getElementById('stop-btn');
+                
+                startBtn.classList.add('hidden');
+                pauseBtn.classList.add('hidden');
+                resumeBtn.classList.add('hidden');
+                stopBtn.classList.add('hidden');
+                
+                if (!this.isWorking) {
+                    startBtn.classList.remove('hidden');
+                } else if (this.isPaused) {
+                    resumeBtn.classList.remove('hidden');
+                    stopBtn.classList.remove('hidden');
+                } else {
+                    pauseBtn.classList.remove('hidden');
+                    stopBtn.classList.remove('hidden');
+                }
+            }
+
+            showManualEntry() {
+                this.setTodayDate();
+                document.getElementById('manual-modal').style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            }
+
+            setTodayDate() {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('manual-date').value = today;
+            }
+
+            addPause() {
+                const container = document.getElementById('pauses-container');
+                const pauseIndex = container.children.length;
+                
+                const pauseDiv = document.createElement('div');
+                pauseDiv.className = 'pause-item';
+                pauseDiv.innerHTML = `
+                    <div class="pause-header">
+                        <span>Pauza ${pauseIndex + 1}</span>
+                        <button type="button" class="remove-pause-btn" onclick="this.parentElement.parentElement.remove()">×</button>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Start</label>
+                        <div class="time-inputs">
+                            <input type="number" class="form-input time-input" placeholder="HH" min="0" max="23" value="12">
+                            <input type="number" class="form-input time-input" placeholder="MM" min="0" max="59" value="0">
+                            <input type="number" class="form-input time-input" placeholder="SS" min="0" max="59" value="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Final</label>
+                        <div class="time-inputs">
+                            <input type="number" class="form-input time-input" placeholder="HH" min="0" max="23" value="12">
+                            <input type="number" class="form-input time-input" placeholder="MM" min="0" max="59" value="30">
+                            <input type="number" class="form-input time-input" placeholder="SS" min="0" max="59" value="0">
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(pauseDiv);
+            }
+
+            saveManualEntry(e) {
+                e.preventDefault();
+                
+                const date = document.getElementById('manual-date').value;
+                const startHour = document.getElementById('start-hour').value.padStart(2, '0');
+                const startMinute = document.getElementById('start-minute').value.padStart(2, '0');
+                const startSecond = document.getElementById('start-second').value.padStart(2, '0');
+                const endHour = document.getElementById('end-hour').value.padStart(2, '0');
+                const endMinute = document.getElementById('end-minute').value.padStart(2, '0');
+                const endSecond = document.getElementById('end-second').value.padStart(2, '0');
+                const location = parseInt(document.getElementById('manual-location').value);
+                
+                const startTime = new Date(`${date}T${startHour}:${startMinute}:${startSecond}`);
+                const endTime = new Date(`${date}T${endHour}:${endMinute}:${endSecond}`);
+                
+                if (endTime <= startTime) {
+                    this.showNotification('Ora de final trebuie să fie după ora de start!', 'error');
+                    return;
+                }
+                
+                // Process pauses
+                const pauses = [];
+                const pauseItems = document.querySelectorAll('.pause-item');
+                pauseItems.forEach((item, index) => {
+                    const inputs = item.querySelectorAll('.time-input');
+                    const pauseStart = new Date(`${date}T${inputs[0].value.padStart(2, '0')}:${inputs[1].value.padStart(2, '0')}:${inputs[2].value.padStart(2, '0')}`);
+                    const pauseEnd = new Date(`${date}T${inputs[3].value.padStart(2, '0')}:${inputs[4].value.padStart(2, '0')}:${inputs[5].value.padStart(2, '0')}`);
+                    const duration = Math.floor((pauseEnd - pauseStart) / 1000);
+                    
+                    pauses.push({
+                        start: pauseStart.toISOString(),
+                        end: pauseEnd.toISOString(),
+                        startFormatted: this.formatTime(pauseStart),
+                        endFormatted: this.formatTime(pauseEnd),
+                        duration
+                    });
+                });
+                
+                const totalWorkSeconds = Math.floor((endTime - startTime) / 1000);
+                const totalPauseDuration = pauses.reduce((sum, pause) => sum + pause.duration, 0);
+                const workDuration = totalWorkSeconds - totalPauseDuration;
+                
+                const record = {
+                    date,
+                    startTime: startTime.toISOString(),
+                    endTime: endTime.toISOString(),
+                    workDuration,
+                    pauseDuration: totalPauseDuration,
+                    pauseHistory: pauses,
+                    location: this.locations[location],
+                    manual: true
+                };
+                
+                this.workRecords[location].unshift(record);
+                this.saveData();
+                this.hideModal('manual-modal');
+                this.showNotification('✅ Sesiune adăugată cu succes!', 'success');
+                
+                // Reset form
+                document.getElementById('manual-form').reset();
+                document.getElementById('pauses-container').innerHTML = '';
+                this.setTodayDate();
+            }
+
+            showHistory() {
+                const content = document.getElementById('history-content');
+                const records = this.workRecords[this.currentLocation];
+                
+                if (records.length === 0) {
+                    content.innerHTML = '<p>Nu există înregistrări pentru această locație.</p>';
+                } else {
+                    content.innerHTML = records.map(record => `
+                        <div class="history-item">
+                            <div class="history-date">${new Date(record.startTime).toLocaleDateString('ro-RO', { 
+                                weekday: 'long', 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                            })} ${record.manual ? '<span style="background: #9c27b0; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">MANUAL</span>' : ''}</div>
+                            <div class="history-duration">${this.formatDuration(record.workDuration)}</div>
+                            <div class="history-details">
+                                <div>Start: ${this.formatTime(new Date(record.startTime))}</div>
+                                <div>Final: ${this.formatTime(new Date(record.endTime))}</div>
+                                <div>Pauze: ${this.formatDuration(record.pauseDuration)}</div>
+                                <div>Locație: ${record.location}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                document.getElementById('history-modal').style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            }
+
+            showSettings() {
+                const content = document.getElementById('settings-content');
+                const loc1Count = this.workRecords[1].length;
+                const loc2Count = this.workRecords[2].length;
+                
+                content.innerHTML = `
+                    <div class="settings-section">
+                        <div class="settings-title">📊 Statistici</div>
+                        <div class="settings-info">
+                            <p>Locația 1: ${loc1Count} sesiuni</p>
+                            <p>Locația 2: ${loc2Count} sesiuni</p>
+                            <p>Status: ${this.isWorking ? (this.isPaused ? 'În pauză' : 'Activ') : 'Inactiv'}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <div class="settings-title">💾 Backup & Restore</div>
+                        <div class="settings-info">
+                            <button class="btn btn-primary" onclick="app.exportData()" style="width: 100%; margin-bottom: 1rem;">📤 Exportă Date</button>
+                            <input type="file" id="import-file" accept=".json" style="display: none;" onchange="app.importData(event)">
+                            <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()" style="width: 100%; margin-bottom: 1rem;">📥 Importă Date</button>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <div class="settings-title">⚠️ Acțiuni</div>
+                        <div class="settings-info">
+                            <button class="btn btn-warning" onclick="app.resetSession()" style="width: 100%; margin-bottom: 1rem;">🔄 Resetează Sesiunea</button>
+                            <button class="btn btn-danger" onclick="app.clearAllData()" style="width: 100%;">🗑️ Șterge Toate Datele</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('settings-modal').style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            }
+
+            hideModal(modalId) {
+                document.getElementById(modalId).style.display = 'none';
+                document.body.style.overflow = '';
+            }
+
+            exportData() {
+                const data = {
+                    workRecords: this.workRecords,
+                    locations: this.locations,
+                    exportDate: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `timetracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                this.showNotification('✅ Date exportate cu succes!', 'success');
+            }
+
+            importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (confirm('Ești sigur? Datele curente vor fi înlocuite!')) {
+                            this.workRecords = data.workRecords || { 1: [], 2: [] };
+                            this.locations = data.locations || this.locations;
+                            this.saveData();
+                            this.showNotification('✅ Date importate cu succes!', 'success');
+                        }
+                    } catch (error) {
+                        this.showNotification('❌ Eroare: Fișier invalid!', 'error');
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            }
+
+            resetSession() {
+                if (confirm('Ești sigur că vrei să resetezi sesiunea curentă?')) {
+                    this.isWorking = false;
+                    this.isPaused = false;
+                    this.startTime = null;
+                    this.pauseStartTime = null;
+                    this.totalPauseTime = 0;
+                    this.pauseHistory = [];
+                    this.updateButtons();
+                    this.updateDisplay();
+                    this.saveData();
+                    this.showNotification('🔄 Sesiunea a fost resetată', 'info');
+                }
+            }
+
+            clearAllData() {
+                if (confirm('ATENȚIE! Această acțiune va șterge TOATE datele. Ești sigur?')) {
+                    this.workRecords = { 1: [], 2: [] };
+                    this.saveData();
+                    this.showNotification('🗑️ Toate datele au fost șterse', 'warning');
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+            }
+
+            formatTime(date) {
+                return date.toLocaleTimeString('ro-RO', { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit' 
+                });
+            }
+
+            formatTimeDigital(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            formatDuration(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                return `${hours}h ${minutes}m`;
+            }
+
+            saveData() {
+                const data = {
+                    currentLocation: this.currentLocation,
+                    locations: this.locations,
+                    workRecords: this.workRecords,
+                    currentSession: {
+                        isWorking: this.isWorking,
+                        isPaused: this.isPaused,
+                        startTime: this.startTime ? this.startTime.toISOString() : null,
+                        pauseStartTime: this.pauseStartTime ? this.pauseStartTime.toISOString() : null,
+                        totalPauseTime: this.totalPauseTime,
+                        pauseHistory: this.pauseHistory
+                    }
+                };
+                localStorage.setItem('timetracker', JSON.stringify(data));
+            }
+
+            loadData() {
+                const data = localStorage.getItem('timetracker');
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        this.currentLocation = parsed.currentLocation || 1;
+                        this.locations = parsed.locations || this.locations;
+                        this.workRecords = parsed.workRecords || { 1: [], 2: [] };
+                        
+                        if (parsed.currentSession) {
+                            this.isWorking = parsed.currentSession.isWorking || false;
+                            this.isPaused = parsed.currentSession.isPaused || false;
+                            this.startTime = parsed.currentSession.startTime ? new Date(parsed.currentSession.startTime) : null;
+                            this.pauseStartTime = parsed.currentSession.pauseStartTime ? new Date(parsed.currentSession.pauseStartTime) : null;
+                            this.totalPauseTime = parsed.currentSession.totalPauseTime || 0;
+                            this.pauseHistory = parsed.currentSession.pauseHistory || [];
+                        }
+                        
+                        this.switchLocation(this.currentLocation);
+                    } catch (error) {
+                        console.error('Error loading data:', error);
+                    }
+                }
+            }
+        }
+
+        // Initialize app
+        const app = new TimeTracker();
+    </script>
+</body>
 </html>
