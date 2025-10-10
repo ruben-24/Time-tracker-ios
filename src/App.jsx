@@ -675,7 +675,7 @@ const TimeTrackerApp = () => {
                     placeholder="Introdu adresa..."
                     className="w-full px-3 py-2 bg-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <div className="flex gap-2">
+                    <div className="flex gap-2">
                     <button
                       onClick={saveCustomLocation}
                       className="flex-1 bg-green-500 hover:bg-green-600 py-2 rounded-lg flex items-center justify-center gap-2"
@@ -686,7 +686,7 @@ const TimeTrackerApp = () => {
                       onClick={() => {
                         setIsEditingLocation(false);
                         setTempLocation("");
-                      }}​​​​​​​​​​​​​​​
+                      }}
                       className="flex-1 bg-red-500 hover:bg-red-600 py-2 rounded-lg flex items-center justify-center gap-2"
                     >
                       <X className="w-4 h-4" /> Anulează
