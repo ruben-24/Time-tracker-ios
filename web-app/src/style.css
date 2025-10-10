@@ -63,6 +63,23 @@
       user-select: text;
       -webkit-touch-callout: default;
       touch-callout: default;
+      position: relative;
+      z-index: 1000;
+    }
+    
+    input:focus, textarea:focus, select:focus {
+      outline: none !important;
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+      transform: translateZ(0) scale(1.02) !important;
+      position: fixed !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) scale(1.02) !important;
+      z-index: 9999 !important;
+      width: 90% !important;
+      max-width: 400px !important;
+      background: white !important;
     }
     
   /* Previne dispariția tastaturii */
