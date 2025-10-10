@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 import './style.css'
+import { keyboardManager } from './utils/keyboard'
 
 // Import views
 import Dashboard from './views/Dashboard.vue'
@@ -43,3 +44,6 @@ if ('serviceWorker' in navigator) {
       })
   })
 }
+
+// Initialize keyboard manager
+keyboardManager.init()
