@@ -223,7 +223,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useDataStore } from '@/stores/dataStore'
+import { useTimeTrackingStore } from '@/stores/dataStore'
 import { useUIStore } from '@/stores/uiStore'
 import DataEntryForm from '@/components/forms/DataEntryForm.vue'
 import { 
@@ -244,7 +244,7 @@ import {
 } from 'lucide-vue-next'
 import type { DataEntry } from '@/types'
 
-const dataStore = useDataStore()
+const timeStore = useTimeTrackingStore()
 const uiStore = useUIStore()
 const { entries, categories, deleteEntry, searchEntries } = dataStore
 const { addNotification } = uiStore

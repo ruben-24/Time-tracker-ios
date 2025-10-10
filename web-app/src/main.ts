@@ -7,15 +7,17 @@ import { keyboardManager } from './utils/keyboard'
 
 // Import views
 import Dashboard from './views/Dashboard.vue'
-import DataEntry from './views/DataEntry.vue'
-import Analytics from './views/Analytics.vue'
+import TimeTracker from './views/TimeTracker.vue'
+import Timesheet from './views/Timesheet.vue'
+import Reports from './views/Reports.vue'
 import Settings from './views/Settings.vue'
 
 // Router configuration
 const routes = [
   { path: '/', name: 'Dashboard', component: Dashboard },
-  { path: '/data-entry', name: 'DataEntry', component: DataEntry },
-  { path: '/analytics', name: 'Analytics', component: Analytics },
+  { path: '/time-tracker', name: 'TimeTracker', component: TimeTracker },
+  { path: '/timesheet', name: 'Timesheet', component: Timesheet },
+  { path: '/reports', name: 'Reports', component: Reports },
   { path: '/settings', name: 'Settings', component: Settings },
 ]
 

@@ -5,15 +5,15 @@
       <div class="flex items-center justify-between">
         <div>
         <h1 class="text-3xl font-bold text-dark-900 dark:text-dark-100 mb-2">
-          Bun venit înapoi! 👋
+          Bună dimineața! ⏰
         </h1>
         <p class="text-dark-600 dark:text-dark-400 text-lg">
-          Iată o privire de ansamblu asupra datelor tale
+          Gata să începi să contorizezi orele de lucru?
         </p>
         </div>
         <div class="hidden md:block">
           <div class="w-24 h-24 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center animate-float">
-            <Database class="w-12 h-12 text-white" />
+            <Clock class="w-12 h-12 text-white" />
           </div>
         </div>
       </div>
@@ -222,7 +222,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useDataStore } from '@/stores/dataStore'
+import { useTimeTrackingStore } from '@/stores/dataStore'
 import { 
   Database, 
   FileText, 
@@ -244,15 +244,17 @@ import {
   Utensils
 } from 'lucide-vue-next'
 
-const dataStore = useDataStore()
-const { entries, categories, totalEntries, totalValue, currentSession, stats, currentSessionDuration, todayTimesheet } = dataStore
+const timeStore = useTimeTrackingStore()
+const { currentSession, projects, stats, currentSessionDuration, todayTimesheet } = timeStore
 
-const activeCategories = computed(() => 
-  categories.filter(category => category.isActive).length
+const activeProjects = computed(() => 
+  projects.filter(project => project.isActive).length
 )
 
-const recentEntries = computed(() => 
-  [...entries].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5)
+const recentSessions = computed(() => 
+  todayTimesheet.workSessions
+    .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
+    .slice(0, 5)
 )
 
 const getSessionIcon = (type: string) => {

@@ -217,7 +217,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useDataStore } from '@/stores/dataStore'
+import { useTimeTrackingStore } from '@/stores/dataStore'
 import { useUIStore } from '@/stores/uiStore'
 import { 
   Play, 
@@ -228,7 +228,7 @@ import {
   Clock 
 } from 'lucide-vue-next'
 
-const dataStore = useDataStore()
+const timeStore = useTimeTrackingStore()
 const uiStore = useUIStore()
 const { 
   currentSession, 

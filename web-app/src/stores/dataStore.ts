@@ -44,8 +44,7 @@ export const useTimeTrackingStore = defineStore('timeTracking', () => {
     return dailyTimesheets.value.find(ts => ts.date === today) || {
       id: `timesheet-${today}`,
       date: today,
-      entries: [],
-      totalValue: 0,
+      workSessions: [],
       totalWorkTime: 0,
       totalBreakTime: 0,
       totalLunchTime: 0,
@@ -54,33 +53,29 @@ export const useTimeTrackingStore = defineStore('timeTracking', () => {
   })
 
   const currentSessionDuration = computed(() => {
-    if (!currentSession.value?.workSession) return 0
+    if (!currentSession.value) return 0
     const now = new Date()
-    const start = currentSession.value.workSession.startTime
+    const start = currentSession.value.startTime
     return Math.floor((now.getTime() - start.getTime()) / (1000 * 60)) // minutes
   })
 
-  const totalValue = computed(() => 
-    entries.value.reduce((sum, entry) => sum + entry.value, 0)
-  )
-
   const stats = computed((): TimeTrackingStats => {
     const today = new Date().toISOString().split('T')[0]
-    const todayEntries = entries.value.filter(entry => 
-      entry.date.toISOString().split('T')[0] === today
+    const todaySessions = workSessions.value.filter(session => 
+      session.startTime.toISOString().split('T')[0] === today
     )
 
-    const todayWorkTime = todayEntries
-      .filter(e => e.workSession?.type === 'work')
-      .reduce((sum, e) => sum + (e.workSession?.duration || 0), 0)
+    const todayWorkTime = todaySessions
+      .filter(s => s.type === 'work')
+      .reduce((sum, s) => sum + s.duration, 0)
     
-    const todayBreakTime = todayEntries
-      .filter(e => e.workSession?.type === 'break')
-      .reduce((sum, e) => sum + (e.workSession?.duration || 0), 0)
+    const todayBreakTime = todaySessions
+      .filter(s => s.type === 'break')
+      .reduce((sum, s) => sum + s.duration, 0)
     
-    const todayLunchTime = todayEntries
-      .filter(e => e.workSession?.type === 'lunch')
-      .reduce((sum, e) => sum + (e.workSession?.duration || 0), 0)
+    const todayLunchTime = todaySessions
+      .filter(s => s.type === 'lunch')
+      .reduce((sum, s) => sum + s.duration, 0)
 
     // This week
     const startOfWeek = new Date()
@@ -88,34 +83,34 @@ export const useTimeTrackingStore = defineStore('timeTracking', () => {
     const endOfWeek = new Date(startOfWeek)
     endOfWeek.setDate(endOfWeek.getDate() + 6)
 
-    const weekEntries = entries.value.filter(entry => 
-      entry.date >= startOfWeek && entry.date <= endOfWeek
+    const weekSessions = workSessions.value.filter(session => 
+      session.startTime >= startOfWeek && session.startTime <= endOfWeek
     )
 
-    const weekWorkTime = weekEntries
-      .filter(e => e.workSession?.type === 'work')
-      .reduce((sum, e) => sum + (e.workSession?.duration || 0), 0)
+    const weekWorkTime = weekSessions
+      .filter(s => s.type === 'work')
+      .reduce((sum, s) => sum + s.duration, 0)
     
-    const weekBreakTime = weekEntries
-      .filter(e => e.workSession?.type === 'break')
-      .reduce((sum, e) => sum + (e.workSession?.duration || 0), 0)
+    const weekBreakTime = weekSessions
+      .filter(s => s.type === 'break')
+      .reduce((sum, s) => sum + s.duration, 0)
     
-    const weekLunchTime = weekEntries
-      .filter(e => e.workSession?.type === 'lunch')
-      .reduce((sum, e) => sum + (e.workSession?.duration || 0), 0)
+    const weekLunchTime = weekSessions
+      .filter(s => s.type === 'lunch')
+      .reduce((sum, s) => sum + s.duration, 0)
 
     return {
       today: {
         workTime: todayWorkTime,
         breakTime: todayBreakTime,
         lunchTime: todayLunchTime,
-        sessions: todayEntries.filter(e => e.workSession).length
+        sessions: todaySessions.length
       },
       thisWeek: {
         workTime: weekWorkTime,
         breakTime: weekBreakTime,
         lunchTime: weekLunchTime,
-        days: new Set(weekEntries.map(e => e.date.toISOString().split('T')[0])).size
+        days: new Set(weekSessions.map(s => s.startTime.toISOString().split('T')[0])).size
       },
       thisMonth: {
         workTime: 0, // Calculate based on month
@@ -132,113 +127,66 @@ export const useTimeTrackingStore = defineStore('timeTracking', () => {
   })
 
   // Actions
-  const addEntry = (entry: Omit<DataEntry, 'id'>) => {
-    const newEntry: DataEntry = {
-      ...entry,
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
-    }
-    entries.value.unshift(newEntry)
-    return newEntry
-  }
-
-  const updateEntry = (id: string, updates: Partial<DataEntry>) => {
-    const index = entries.value.findIndex(entry => entry.id === id)
-    if (index !== -1) {
-      entries.value[index] = { ...entries.value[index], ...updates }
-    }
-  }
-
-  const deleteEntry = (id: string) => {
-    const index = entries.value.findIndex(entry => entry.id === id)
-    if (index !== -1) {
-      entries.value.splice(index, 1)
-    }
-  }
-
-  const startWork = (categoryId?: string, notes?: string) => {
+  const startWork = (projectId?: string, notes?: string) => {
     if (currentSession.value) return false
 
-    const newEntry: DataEntry = {
+    const newSession: WorkSession = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      title: 'Sesiune de lucru',
-      description: notes || 'Lucru în curs',
-      category: categoryId || '3', // Muncă
-      value: 0,
-      date: new Date(),
-      tags: ['lucru'],
+      startTime: new Date(),
+      duration: 0,
+      type: 'work',
       status: 'active',
-      workSession: {
-        startTime: new Date(),
-        duration: 0,
-        type: 'work',
-        status: 'active'
-      }
+      notes,
+      project: projectId
     }
 
-    currentSession.value = newEntry
-    entries.value.unshift(newEntry)
+    currentSession.value = newSession
+    workSessions.value.push(newSession)
     return true
   }
 
   const startBreak = (notes?: string) => {
     if (currentSession.value) return false
 
-    const newEntry: DataEntry = {
+    const newSession: WorkSession = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      title: 'Pauză',
-      description: notes || 'Pauză de lucru',
-      category: '2', // Personal
-      value: 0,
-      date: new Date(),
-      tags: ['pauză'],
+      startTime: new Date(),
+      duration: 0,
+      type: 'break',
       status: 'active',
-      workSession: {
-        startTime: new Date(),
-        duration: 0,
-        type: 'break',
-        status: 'active'
-      }
+      notes
     }
 
-    currentSession.value = newEntry
-    entries.value.unshift(newEntry)
+    currentSession.value = newSession
+    workSessions.value.push(newSession)
     return true
   }
 
   const startLunch = (notes?: string) => {
     if (currentSession.value) return false
 
-    const newEntry: DataEntry = {
+    const newSession: WorkSession = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      title: 'Pauză de masă',
-      description: notes || 'Pauză de masă',
-      category: '2', // Personal
-      value: 0,
-      date: new Date(),
-      tags: ['masă'],
+      startTime: new Date(),
+      duration: 0,
+      type: 'lunch',
       status: 'active',
-      workSession: {
-        startTime: new Date(),
-        duration: 0,
-        type: 'lunch',
-        status: 'active'
-      }
+      notes
     }
 
-    currentSession.value = newEntry
-    entries.value.unshift(newEntry)
+    currentSession.value = newSession
+    workSessions.value.push(newSession)
     return true
   }
 
   const stopCurrentSession = () => {
-    if (!currentSession.value?.workSession) return false
+    if (!currentSession.value) return false
 
     const now = new Date()
-    const duration = Math.floor((now.getTime() - currentSession.value.workSession.startTime.getTime()) / (1000 * 60))
+    const duration = Math.floor((now.getTime() - currentSession.value.startTime.getTime()) / (1000 * 60))
     
-    currentSession.value.workSession.endTime = now
-    currentSession.value.workSession.duration = duration
-    currentSession.value.workSession.status = 'completed'
+    currentSession.value.endTime = now
+    currentSession.value.duration = duration
     currentSession.value.status = 'completed'
 
     // Update today's timesheet
@@ -249,42 +197,39 @@ export const useTimeTrackingStore = defineStore('timeTracking', () => {
   }
 
   const pauseCurrentSession = () => {
-    if (!currentSession.value?.workSession) return false
-    currentSession.value.workSession.status = 'paused'
+    if (!currentSession.value) return false
+    currentSession.value.status = 'paused'
     return true
   }
 
   const resumeCurrentSession = () => {
-    if (!currentSession.value?.workSession) return false
-    currentSession.value.workSession.status = 'active'
+    if (!currentSession.value) return false
+    currentSession.value.status = 'active'
     return true
   }
 
   const updateTodayTimesheet = () => {
     const today = new Date().toISOString().split('T')[0]
-    const todayEntries = entries.value.filter(entry => 
-      entry.date.toISOString().split('T')[0] === today
+    const todaySessions = workSessions.value.filter(session => 
+      session.startTime.toISOString().split('T')[0] === today
     )
 
-    const workTime = todayEntries
-      .filter(e => e.workSession?.type === 'work')
-      .reduce((sum, e) => sum + (e.workSession?.duration || 0), 0)
+    const workTime = todaySessions
+      .filter(s => s.type === 'work')
+      .reduce((sum, s) => sum + s.duration, 0)
     
-    const breakTime = todayEntries
-      .filter(e => e.workSession?.type === 'break')
-      .reduce((sum, e) => sum + (e.workSession?.duration || 0), 0)
+    const breakTime = todaySessions
+      .filter(s => s.type === 'break')
+      .reduce((sum, s) => sum + s.duration, 0)
     
-    const lunchTime = todayEntries
-      .filter(e => e.workSession?.type === 'lunch')
-      .reduce((sum, e) => sum + (e.workSession?.duration || 0), 0)
-
-    const totalValue = todayEntries.reduce((sum, e) => sum + e.value, 0)
+    const lunchTime = todaySessions
+      .filter(s => s.type === 'lunch')
+      .reduce((sum, s) => sum + s.duration, 0)
 
     const existingTimesheet = dailyTimesheets.value.find(ts => ts.date === today)
     
     if (existingTimesheet) {
-      existingTimesheet.entries = todayEntries
-      existingTimesheet.totalValue = totalValue
+      existingTimesheet.workSessions = todaySessions
       existingTimesheet.totalWorkTime = workTime
       existingTimesheet.totalBreakTime = breakTime
       existingTimesheet.totalLunchTime = lunchTime
@@ -292,8 +237,7 @@ export const useTimeTrackingStore = defineStore('timeTracking', () => {
       dailyTimesheets.value.push({
         id: `timesheet-${today}`,
         date: today,
-        entries: todayEntries,
-        totalValue,
+        workSessions: todaySessions,
         totalWorkTime: workTime,
         totalBreakTime: breakTime,
         totalLunchTime: lunchTime,
@@ -302,59 +246,47 @@ export const useTimeTrackingStore = defineStore('timeTracking', () => {
     }
   }
 
-  const addCategory = (category: Omit<Category, 'id'>) => {
-    const newCategory: Category = {
-      ...category,
+  const addProject = (project: Omit<Project, 'id'>) => {
+    const newProject: Project = {
+      ...project,
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
     }
-    categories.value.push(newCategory)
-    return newCategory
+    projects.value.push(newProject)
+    return newProject
   }
 
-  const updateCategory = (id: string, updates: Partial<Category>) => {
-    const index = categories.value.findIndex(category => category.id === id)
+  const updateProject = (id: string, updates: Partial<Project>) => {
+    const index = projects.value.findIndex(project => project.id === id)
     if (index !== -1) {
-      categories.value[index] = { ...categories.value[index], ...updates }
+      projects.value[index] = { ...projects.value[index], ...updates }
     }
   }
 
-  const deleteCategory = (id: string) => {
-    const index = categories.value.findIndex(category => category.id === id)
+  const deleteProject = (id: string) => {
+    const index = projects.value.findIndex(project => project.id === id)
     if (index !== -1) {
-      categories.value.splice(index, 1)
+      projects.value.splice(index, 1)
     }
   }
 
-  const getEntriesByCategory = (categoryId: string) => {
-    return entries.value.filter(entry => entry.category === categoryId)
-  }
-
-  const searchEntries = (query: string) => {
-    const lowercaseQuery = query.toLowerCase()
-    return entries.value.filter(entry => 
-      entry.title.toLowerCase().includes(lowercaseQuery) ||
-      entry.description.toLowerCase().includes(lowercaseQuery) ||
-      entry.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery))
+  const getSessionsByDate = (date: string) => {
+    return workSessions.value.filter(session => 
+      session.startTime.toISOString().split('T')[0] === date
     )
   }
 
-  const getEntriesByDate = (date: string) => {
-    return entries.value.filter(entry => 
-      entry.date.toISOString().split('T')[0] === date
-    )
+  const getSessionsByProject = (projectId: string) => {
+    return workSessions.value.filter(session => session.project === projectId)
   }
 
   return {
     // State
-    entries,
-    categories,
     currentSession,
+    workSessions,
     dailyTimesheets,
+    projects,
     
     // Getters
-    totalEntries,
-    entriesByCategory,
-    totalValue,
     isWorking,
     isOnBreak,
     isOnLunch,
@@ -363,21 +295,17 @@ export const useTimeTrackingStore = defineStore('timeTracking', () => {
     stats,
     
     // Actions
-    addEntry,
-    updateEntry,
-    deleteEntry,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-    getEntriesByCategory,
-    searchEntries,
-    getEntriesByDate,
     startWork,
     startBreak,
     startLunch,
     stopCurrentSession,
     pauseCurrentSession,
     resumeCurrentSession,
-    updateTodayTimesheet
+    updateTodayTimesheet,
+    addProject,
+    updateProject,
+    deleteProject,
+    getSessionsByDate,
+    getSessionsByProject
   }
 })

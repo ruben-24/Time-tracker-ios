@@ -264,12 +264,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useDataStore } from '@/stores/dataStore'
+import { useTimeTrackingStore } from '@/stores/dataStore'
 import { useUIStore } from '@/stores/uiStore'
 import { ChevronLeft, ChevronRight, Save, Plus, X } from 'lucide-vue-next'
 import type { DataEntry } from '@/types'
 
-const dataStore = useDataStore()
+const timeStore = useTimeTrackingStore()
 const uiStore = useUIStore()
 const { addEntry } = dataStore
 const { addNotification } = uiStore
