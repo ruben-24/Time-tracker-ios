@@ -1,33 +1,45 @@
-export interface WorkSession {
+export interface DataEntry {
   id: string
-  startTime: Date
-  endTime?: Date
-  duration: number // in minutes
-  type: 'work' | 'break' | 'lunch'
-  status: 'active' | 'completed' | 'paused'
-  notes?: string
-  project?: string
+  title: string
+  description: string
+  category: string
+  value: number
+  date: Date
+  tags: string[]
+  status: 'active' | 'inactive' | 'pending'
+  metadata?: Record<string, any>
+  // Time tracking fields
+  workSession?: {
+    startTime: Date
+    endTime?: Date
+    duration: number // in minutes
+    type: 'work' | 'break' | 'lunch'
+    status: 'active' | 'completed' | 'paused'
+  }
+}
+
+export interface Category {
+  id: string
+  name: string
+  color: string
+  icon: string
+  description?: string
+  // Time tracking fields
+  hourlyRate?: number
+  isActive: boolean
 }
 
 export interface DailyTimesheet {
   id: string
   date: string // YYYY-MM-DD
-  workSessions: WorkSession[]
+  entries: DataEntry[]
+  totalValue: number
   totalWorkTime: number // in minutes
   totalBreakTime: number // in minutes
   totalLunchTime: number // in minutes
   startTime?: Date
   endTime?: Date
   isCompleted: boolean
-}
-
-export interface Project {
-  id: string
-  name: string
-  color: string
-  description?: string
-  isActive: boolean
-  hourlyRate?: number
 }
 
 export interface User {

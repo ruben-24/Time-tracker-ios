@@ -7,8 +7,8 @@
           <Database class="w-6 h-6 text-white" />
         </div>
         <div>
-        <h1 class="text-xl font-bold text-gradient">Work Time Tracker</h1>
-        <p class="text-sm text-dark-500 dark:text-dark-400">Contorizează orele de lucru</p>
+        <h1 class="text-xl font-bold text-gradient">Data Manager</h1>
+        <p class="text-sm text-dark-500 dark:text-dark-400">Modern & Intuitive</p>
         </div>
       </div>
     </div>
@@ -52,12 +52,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useUIStore } from '@/stores/uiStore'
-import { useTimeTrackingStore } from '@/stores/dataStore'
+import { useDataStore } from '@/stores/dataStore'
 import { 
-  Clock, 
+  Database, 
   LayoutDashboard, 
-  Play, 
-  Calendar, 
+  PlusCircle, 
   BarChart3, 
   Settings, 
   User, 
@@ -66,9 +65,9 @@ import {
 } from 'lucide-vue-next'
 
 const uiStore = useUIStore()
-const timeStore = useTimeTrackingStore()
+const dataStore = useDataStore()
 const { isDark, toggleTheme } = uiStore
-const { stats } = timeStore
+const { totalEntries } = dataStore
 
 const navigationItems = computed(() => [
   {
@@ -78,22 +77,16 @@ const navigationItems = computed(() => [
     icon: LayoutDashboard
   },
   {
-    name: 'TimeTracker',
-    path: '/time-tracker',
-    label: 'Contorizare Timp',
-    icon: Play,
-    badge: stats.today.sessions > 0 ? stats.today.sessions : undefined
+    name: 'DataEntry',
+    path: '/data-entry',
+    label: 'Introducere Date',
+    icon: PlusCircle,
+    badge: totalEntries > 0 ? totalEntries : undefined
   },
   {
-    name: 'Timesheet',
-    path: '/timesheet',
-    label: 'Timesheet',
-    icon: Calendar
-  },
-  {
-    name: 'Reports',
-    path: '/reports',
-    label: 'Rapoarte',
+    name: 'Analytics',
+    path: '/analytics',
+    label: 'Analiză',
     icon: BarChart3
   },
   {

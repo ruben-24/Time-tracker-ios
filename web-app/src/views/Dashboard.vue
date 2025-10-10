@@ -4,34 +4,34 @@
     <div class="glass p-8 rounded-2xl">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-dark-900 dark:text-dark-100 mb-2">
-            Bună dimineața! ⏰
-          </h1>
-          <p class="text-dark-600 dark:text-dark-400 text-lg">
-            Gata să începi să contorizezi orele de lucru?
-          </p>
+        <h1 class="text-3xl font-bold text-dark-900 dark:text-dark-100 mb-2">
+          Bun venit înapoi! 👋
+        </h1>
+        <p class="text-dark-600 dark:text-dark-400 text-lg">
+          Iată o privire de ansamblu asupra datelor tale
+        </p>
         </div>
         <div class="hidden md:block">
           <div class="w-24 h-24 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center animate-float">
-            <Clock class="w-12 h-12 text-white" />
+            <Database class="w-12 h-12 text-white" />
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Current Status -->
-    <div v-if="currentSession" class="card p-6 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 border-primary-200 dark:border-primary-700">
+    <!-- Current Session (Time Tracking) -->
+    <div v-if="currentSession?.workSession" class="card p-6 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 border-primary-200 dark:border-primary-700">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <div class="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center animate-pulse">
-            <component :is="getSessionIcon(currentSession.type)" class="w-8 h-8 text-white" />
+            <component :is="getSessionIcon(currentSession.workSession.type)" class="w-8 h-8 text-white" />
           </div>
           <div>
             <h3 class="text-xl font-bold text-primary-900 dark:text-primary-100">
-              {{ getSessionTitle(currentSession.type) }}
+              {{ getSessionTitle(currentSession.workSession.type) }}
             </h3>
             <p class="text-primary-700 dark:text-primary-300">
-              {{ formatDuration(currentSessionDuration) }} - {{ formatTime(currentSession.startTime) }}
+              {{ formatDuration(currentSessionDuration) }} - {{ formatTime(currentSession.workSession.startTime) }}
             </p>
           </div>
         </div>
@@ -49,64 +49,66 @@
       <div class="card p-6 card-hover">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Ore Lucrate Astăzi</p>
-            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ formatDuration(stats.today.workTime) }}</p>
+            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Total Intrări</p>
+            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ totalEntries }}</p>
           </div>
           <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-            <Clock class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <FileText class="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
         </div>
         <div class="mt-4 flex items-center text-sm text-green-600 dark:text-green-400">
           <TrendingUp class="w-4 h-4 mr-1" />
-          {{ stats.today.sessions }} sesiuni
+          +12% față de luna trecută
         </div>
       </div>
 
       <div class="card p-6 card-hover">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Pauze Astăzi</p>
-            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ formatDuration(stats.today.breakTime) }}</p>
-          </div>
-          <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-            <Coffee class="w-6 h-6 text-orange-600 dark:text-orange-400" />
-          </div>
-        </div>
-        <div class="mt-4 flex items-center text-sm text-dark-500 dark:text-dark-400">
-          <Pause class="w-4 h-4 mr-1" />
-          Pauze de lucru
-        </div>
-      </div>
-
-      <div class="card p-6 card-hover">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Ore Săptămâna Aceasta</p>
-            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ formatDuration(stats.thisWeek.workTime) }}</p>
-          </div>
-          <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-            <Calendar class="w-6 h-6 text-green-600 dark:text-green-400" />
-          </div>
-        </div>
-        <div class="mt-4 flex items-center text-sm text-dark-500 dark:text-dark-400">
-          <BarChart3 class="w-4 h-4 mr-1" />
-          {{ stats.thisWeek.days }} zile lucrate
-        </div>
-      </div>
-
-      <div class="card p-6 card-hover">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Proiecte Active</p>
-            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ activeProjects }}</p>
+            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Categorii</p>
+            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ categories.length }}</p>
           </div>
           <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
             <Folder class="w-6 h-6 text-purple-600 dark:text-purple-400" />
           </div>
         </div>
         <div class="mt-4 flex items-center text-sm text-dark-500 dark:text-dark-400">
-          <Briefcase class="w-4 h-4 mr-1" />
-          Proiecte în lucru
+          <Tag class="w-4 h-4 mr-1" />
+          Organizate eficient
+        </div>
+      </div>
+
+      <div class="card p-6 card-hover">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Valoare Totală</p>
+            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">
+              {{ totalValue.toLocaleString('ro-RO') }}
+            </p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+            <DollarSign class="w-6 h-6 text-green-600 dark:text-green-400" />
+          </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm text-green-600 dark:text-green-400">
+          <TrendingUp class="w-4 h-4 mr-1" />
+          +8% față de luna trecută
+        </div>
+      </div>
+
+      <div class="card p-6 card-hover">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-dark-600 dark:text-dark-400">Ore Lucrate Astăzi</p>
+            <p class="text-3xl font-bold text-dark-900 dark:text-dark-100">{{ formatDuration(stats.today.workTime) }}</p>
+          </div>
+          <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+            <Clock class="w-6 h-6 text-orange-600 dark:text-orange-400" />
+          </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm text-dark-500 dark:text-dark-400">
+          <Activity class="w-4 h-4 mr-1" />
+          {{ stats.today.sessions }} sesiuni
         </div>
       </div>
     </div>
@@ -220,34 +222,37 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useTimeTrackingStore } from '@/stores/dataStore'
+import { useDataStore } from '@/stores/dataStore'
 import { 
-  Clock, 
-  Calendar, 
+  Database, 
+  FileText, 
   TrendingUp, 
   Folder, 
-  Coffee, 
-  Pause, 
-  Play, 
-  BarChart3, 
+  Tag, 
+  DollarSign, 
+  Activity, 
+  Clock, 
   Plus, 
+  BarChart3, 
   Download,
+  DollarSign as DollarIcon,
+  User,
   Briefcase,
-  Utensils,
-  Timer
+  Heart,
+  Play,
+  Coffee,
+  Utensils
 } from 'lucide-vue-next'
 
-const timeStore = useTimeTrackingStore()
-const { currentSession, projects, stats, currentSessionDuration, todayTimesheet } = timeStore
+const dataStore = useDataStore()
+const { entries, categories, totalEntries, totalValue, currentSession, stats, currentSessionDuration, todayTimesheet } = dataStore
 
-const activeProjects = computed(() => 
-  projects.filter(project => project.isActive).length
+const activeCategories = computed(() => 
+  categories.filter(category => category.isActive).length
 )
 
-const recentSessions = computed(() => 
-  todayTimesheet.workSessions
-    .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
-    .slice(0, 5)
+const recentEntries = computed(() => 
+  [...entries].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5)
 )
 
 const getSessionIcon = (type: string) => {
