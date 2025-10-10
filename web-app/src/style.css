@@ -15,6 +15,40 @@
   html {
     scroll-behavior: smooth;
   }
+  
+  /* Fix pentru tastatura pe web */
+  input, textarea, select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 0;
+  }
+  
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Previne zoom pe iOS când se apasă input-uri */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+  
+  /* Fix pentru mobile keyboard */
+  @media screen and (max-width: 768px) {
+    input, textarea, select {
+      font-size: 16px !important;
+      transform: translateZ(0);
+    }
+  }
 }
 
 @layer components {
