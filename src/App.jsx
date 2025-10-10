@@ -1,19 +1,339 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Clock, Play, Pause, StopCircle, History, Settings, MapPin, TrendingUp, ArrowLeft, 
-  Edit2, Check, X, Coffee, Download, Upload, PlusCircle, Calendar, Trash2 
-} from 'lucide-react';
+import { Clock, Play, Pause, StopCircle, History, Settings, MapPin, TrendingUp, ArrowLeft, Edit2, Check, X, Coffee, Download, Upload, PlusCircle, Calendar, Trash2 } from 'lucide-react';
 
 const DEFAULT_LOCATION_1 = "Wasserburger Str. 15a, 83119 Obing";
 const DEFAULT_LOCATION_2 = "Adresa personalizată";
 
+// COMPONENT SEPARAT PENTRU MANUAL ENTRY - IZOLAT DE RE-RENDERS
+const ManualEntryModal = ({ 
+  showManualEntry, 
+  setShowManualEntry, 
+  activeLocation, 
+  location2Custom, 
+  workRecords, 
+  setWorkRecords, 
+  formatExactTime 
+}) => {
+  const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
+  const [manualStartHour, setManualStartHour] = useState('09');
+  const [manualStartMinute, setManualStartMinute] = useState('00');
+  const [manualStartSecond, setManualStartSecond] = useState('00');
+  const [manualEndHour, setManualEndHour] = useState('17');
+  const [manualEndMinute, setManualEndMinute] = useState('00');
+  const [manualEndSecond, setManualEndSecond] = useState('00');
+  const [manualLocation, setManualLocation] = useState(activeLocation);
+  const [manualPauses, setManualPauses] = useState([]);
+
+  const addManualPause = () => {
+    setManualPauses([...manualPauses, { 
+      startHour: '12', startMinute: '00', startSecond: '00',
+      endHour: '12', endMinute: '30', endSecond: '00'
+    }]);
+  };
+
+  const updateManualPause = (index, field, value) => {
+    const updated = [...manualPauses];
+    updated[index][field] = value;
+    setManualPauses(updated);
+  };
+
+  const removeManualPause = (index) => {
+    setManualPauses(manualPauses.filter((_, i) => i !== index));
+  };
+
+  const saveManualEntry = () => {
+    try {
+      const startTimeStr = `${manualStartHour.padStart(2, '0')}:${manualStartMinute.padStart(2, '0')}:${manualStartSecond.padStart(2, '0')}`;
+      const endTimeStr = `${manualEndHour.padStart(2, '0')}:${manualEndMinute.padStart(2, '0')}:${manualEndSecond.padStart(2, '0')}`;
+      
+      const startDateTime = new Date(`${manualDate}T${startTimeStr}`);
+      const endDateTime = new Date(`${manualDate}T${endTimeStr}`);
+      
+      if (endDateTime <= startDateTime) {
+        alert('❌ Ora de final trebuie să fie după ora de start!');
+        return;
+      }
+
+      const totalWorkSeconds = Math.floor((endDateTime - startDateTime) / 1000);
+      
+      const processedPauses = manualPauses.map(pause => {
+        const pauseStartStr = `${pause.startHour.padStart(2, '0')}:${pause.startMinute.padStart(2, '0')}:${pause.startSecond.padStart(2, '0')}`;
+        const pauseEndStr = `${pause.endHour.padStart(2, '0')}:${pause.endMinute.padStart(2, '0')}:${pause.endSecond.padStart(2, '0')}`;
+        
+        const pauseStart = new Date(`${manualDate}T${pauseStartStr}`);
+        const pauseEnd = new Date(`${manualDate}T${pauseEndStr}`);
+        const duration = Math.floor((pauseEnd - pauseStart) / 1000);
+        
+        return {
+          start: pauseStart.toISOString(),
+          end: pauseEnd.toISOString(),
+          startFormatted: formatExactTime(pauseStart),
+          endFormatted: formatExactTime(pauseEnd),
+          duration
+        };
+      });
+
+      const totalPauseDuration = processedPauses.reduce((sum, p) => sum + p.duration, 0);
+      const workDuration = totalWorkSeconds - totalPauseDuration;
+
+      const record = {
+        date: manualDate,
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        workDuration,
+        pauseDuration: totalPauseDuration,
+        pauseHistory: processedPauses,
+        location: manualLocation === 1 ? DEFAULT_LOCATION_1 : location2Custom,
+        manual: true
+      };
+
+      const locationKey = manualLocation === 1 ? 'location1' : 'location2';
+      setWorkRecords({
+        ...workRecords,
+        [locationKey]: [...workRecords[locationKey], record].sort((a, b) => 
+          new Date(b.startTime) - new Date(a.startTime)
+        )
+      });
+
+      alert('✅ Sesiune adăugată cu succes!');
+      setShowManualEntry(false);
+    } catch (error) {
+      alert('❌ Eroare la salvare!');
+      console.error(error);
+    }
+  };
+
+  if (!showManualEntry) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/90 z-50 overflow-y-auto">
+      <div className="min-h-screen px-4 py-8">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 max-w-md mx-auto">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <PlusCircle className="w-6 h-6" />
+              Adaugă Sesiune Manual
+            </h3>
+            <button 
+              onClick={() => setShowManualEntry(false)} 
+              className="text-gray-400 hover:text-white"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm text-gray-300 mb-2">📅 Data:</label>
+              <input
+                type="date"
+                value={manualDate}
+                onChange={(e) => setManualDate(e.target.value)}
+                className="w-full px-3 py-3 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-300 mb-2">🕐 Ora Start (HH:MM:SS):</label>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="23"
+                  value={manualStartHour}
+                  onChange={(e) => setManualStartHour(e.target.value)}
+                  placeholder="HH"
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={manualStartMinute}
+                  onChange={(e) => setManualStartMinute(e.target.value)}
+                  placeholder="MM"
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={manualStartSecond}
+                  onChange={(e) => setManualStartSecond(e.target.value)}
+                  placeholder="SS"
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-300 mb-2">🕐 Ora Final (HH:MM:SS):</label>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="23"
+                  value={manualEndHour}
+                  onChange={(e) => setManualEndHour(e.target.value)}
+                  placeholder="HH"
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={manualEndMinute}
+                  onChange={(e) => setManualEndMinute(e.target.value)}
+                  placeholder="MM"
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={manualEndSecond}
+                  onChange={(e) => setManualEndSecond(e.target.value)}
+                  placeholder="SS"
+                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-300 mb-2">📍 Locație:</label>
+              <select
+                value={manualLocation}
+                onChange={(e) => setManualLocation(parseInt(e.target.value))}
+                className="w-full px-3 py-3 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value={1}>Locație 1</option>
+                <option value={2}>Locație 2</option>
+              </select>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <label className="block text-sm text-gray-300">☕ Pauze:</label>
+                <button
+                  onClick={addManualPause}
+                  className="text-xs bg-yellow-500 hover:bg-yellow-600 px-3 py-2 rounded-lg flex items-center gap-1"
+                >
+                  <PlusCircle className="w-4 h-4" /> Adaugă
+                </button>
+              </div>
+
+              {manualPauses.map((pause, index) => (
+                <div key={index} className="bg-white/5 rounded-lg p-4 mb-3">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm text-yellow-400 font-semibold">Pauza {index + 1}</span>
+                    <button
+                      onClick={() => removeManualPause(index)}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-400 mb-1">Start:</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          max="23"
+                          value={pause.startHour}
+                          onChange={(e) => updateManualPause(index, 'startHour', e.target.value)}
+                          placeholder="HH"
+                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={pause.startMinute}
+                          onChange={(e) => updateManualPause(index, 'startMinute', e.target.value)}
+                          placeholder="MM"
+                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={pause.startSecond}
+                          onChange={(e) => updateManualPause(index, 'startSecond', e.target.value)}
+                          placeholder="SS"
+                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-400 mb-1">Final:</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          max="23"
+                          value={pause.endHour}
+                          onChange={(e) => updateManualPause(index, 'endHour', e.target.value)}
+                          placeholder="HH"
+                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={pause.endMinute}
+                          onChange={(e) => updateManualPause(index, 'endMinute', e.target.value)}
+                          placeholder="MM"
+                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={pause.endSecond}
+                          onChange={(e) => updateManualPause(index, 'endSecond', e.target.value)}
+                          placeholder="SS"
+                          className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={saveManualEntry}
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2"
+              >
+                <Check className="w-5 h-5" />
+                Salvează
+              </button>
+              <button
+                onClick={() => setShowManualEntry(false)}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 rounded-xl"
+              >
+                Anulează
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// COMPONENTA PRINCIPALĂ
 const TimeTrackerApp = () => {
-  // Stări principale
   const [activeLocation, setActiveLocation] = useState(1);
   const [location2Custom, setLocation2Custom] = useState(DEFAULT_LOCATION_2);
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [tempLocation, setTempLocation] = useState("");
-
+  
   const [isAtWork, setIsAtWork] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [startTime, setStartTime] = useState(null);
@@ -25,7 +345,6 @@ const TimeTrackerApp = () => {
   const [activeView, setActiveView] = useState('main');
   const [showManualEntry, setShowManualEntry] = useState(false);
 
-  // Funcții helper
   const getCurrentLocation = () => activeLocation === 1 ? DEFAULT_LOCATION_1 : location2Custom;
   const getLocationKey = () => activeLocation === 1 ? 'location1' : 'location2';
 
@@ -34,7 +353,6 @@ const TimeTrackerApp = () => {
     return Math.floor((currentTime - pauseStartTime) / 1000);
   };
 
-  // Load data from localStorage
   useEffect(() => {
     const savedData = localStorage.getItem('workTimeDataDual');
     if (savedData) {
@@ -58,7 +376,6 @@ const TimeTrackerApp = () => {
     }
   }, []);
 
-  // Save data to localStorage
   useEffect(() => {
     const data = {
       workRecords,
@@ -77,7 +394,6 @@ const TimeTrackerApp = () => {
     localStorage.setItem('workTimeDataDual', JSON.stringify(data));
   }, [isAtWork, isPaused, startTime, pauseStartTime, totalPauseTime, pauseHistory, workRecords, activeLocation, location2Custom]);
 
-  // Actualizare timp curent
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -85,7 +401,6 @@ const TimeTrackerApp = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Format functions
   const formatDuration = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -119,7 +434,6 @@ const TimeTrackerApp = () => {
     return Math.floor((current - startTime) / 1000) - totalPauseTime;
   };
 
-  // Funcții principale pentru start, pause, stop
   const startWork = () => {
     setIsAtWork(true);
     setStartTime(new Date());
@@ -220,7 +534,6 @@ const TimeTrackerApp = () => {
     }
   };
 
-  // Export data
   const exportData = () => {
     const data = {
       workRecords,
@@ -243,7 +556,6 @@ const TimeTrackerApp = () => {
     alert('✅ Date exportate cu succes!');
   };
 
-  // Import data
   const importData = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -267,7 +579,6 @@ const TimeTrackerApp = () => {
     event.target.value = '';
   };
 
-  // Dynamic Island Widget
   const DynamicIslandWidget = () => {
     if (!isPaused) return null;
     
@@ -290,324 +601,18 @@ const TimeTrackerApp = () => {
     );
   };
 
-  // Manual Entry Modal - FĂRĂ AUTO-FOCUS
-  const ManualEntryModal = () => {
-    const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
-    const [manualStartHour, setManualStartHour] = useState('09');
-    const [manualStartMinute, setManualStartMinute] = useState('00');
-    const [manualStartSecond, setManualStartSecond] = useState('00');
-    const [manualEndHour, setManualEndHour] = useState('17');
-    const [manualEndMinute, setManualEndMinute] = useState('00');
-    const [manualEndSecond, setManualEndSecond] = useState('00');
-    const [manualLocation, setManualLocation] = useState(activeLocation);
-    const [manualPauses, setManualPauses] = useState([]);
-
-    const addManualPause = () => {
-      setManualPauses([...manualPauses, { 
-        startHour: '12', startMinute: '00', startSecond: '00',
-        endHour: '12', endMinute: '30', endSecond: '00'
-      }]);
-    };
-
-    const updateManualPause = (index, field, value) => {
-      const updated = [...manualPauses];
-      updated[index][field] = value;
-      setManualPauses(updated);
-    };
-
-    const removeManualPause = (index) => {
-      setManualPauses(manualPauses.filter((_, i) => i !== index));
-    };
-
-    const saveManualEntry = () => {
-      try {
-        const startTimeStr = `${manualStartHour.padStart(2, '0')}:${manualStartMinute.padStart(2, '0')}:${manualStartSecond.padStart(2, '0')}`;
-        const endTimeStr = `${manualEndHour.padStart(2, '0')}:${manualEndMinute.padStart(2, '0')}:${manualEndSecond.padStart(2, '0')}`;
-        
-        const startDateTime = new Date(`${manualDate}T${startTimeStr}`);
-        const endDateTime = new Date(`${manualDate}T${endTimeStr}`);
-        
-        if (endDateTime <= startDateTime) {
-          alert('❌ Ora de final trebuie să fie după ora de start!');
-          return;
-        }
-
-        const totalWorkSeconds = Math.floor((endDateTime - startDateTime) / 1000);
-        
-        const processedPauses = manualPauses.map(pause => {
-          const pauseStartStr = `${pause.startHour.padStart(2, '0')}:${pause.startMinute.padStart(2, '0')}:${pause.startSecond.padStart(2, '0')}`;
-          const pauseEndStr = `${pause.endHour.padStart(2, '0')}:${pause.endMinute.padStart(2, '0')}:${pause.endSecond.padStart(2, '0')}`;
-          
-          const pauseStart = new Date(`${manualDate}T${pauseStartStr}`);
-          const pauseEnd = new Date(`${manualDate}T${pauseEndStr}`);
-          const duration = Math.floor((pauseEnd - pauseStart) / 1000);
-          
-          return {
-            start: pauseStart.toISOString(),
-            end: pauseEnd.toISOString(),
-            startFormatted: formatExactTime(pauseStart),
-            endFormatted: formatExactTime(pauseEnd),
-            duration
-          };
-        });
-
-        const totalPauseDuration = processedPauses.reduce((sum, p) => sum + p.duration, 0);
-        const workDuration = totalWorkSeconds - totalPauseDuration;
-
-        const record = {
-          date: manualDate,
-          startTime: startDateTime.toISOString(),
-          endTime: endDateTime.toISOString(),
-          workDuration,
-          pauseDuration: totalPauseDuration,
-          pauseHistory: processedPauses,
-          location: manualLocation === 1 ? DEFAULT_LOCATION_1 : location2Custom,
-          manual: true
-        };
-
-        const locationKey = manualLocation === 1 ? 'location1' : 'location2';
-        setWorkRecords({
-          ...workRecords,
-          [locationKey]: [...workRecords[locationKey], record].sort((a, b) => 
-            new Date(b.startTime) - new Date(a.startTime)
-          )
-        });
-
-        alert('✅ Sesiune adăugată cu succes!');
-        setShowManualEntry(false);
-      } catch (error) {
-        alert('❌ Eroare la salvare!');
-        console.error(error);
-      }
-    };
-
-    if (!showManualEntry) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black/90 z-50 overflow-y-auto">
-        <div className="min-h-screen px-4 py-8">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 max-w-md mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <PlusCircle className="w-6 h-6" />
-                Adaugă Sesiune Manual
-              </h3>
-              <button 
-                onClick={() => setShowManualEntry(false)} 
-                className="text-gray-400 hover:text-white"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm text-gray-300 mb-2">📅 Data:</label>
-                <input
-                  type="date"
-                  value={manualDate}
-                  onChange={(e) => setManualDate(e.target.value)}
-                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-300 mb-2">🕐 Ora Start (HH:MM:SS):</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    max="23"
-                    value={manualStartHour}
-                    onChange={(e) => setManualStartHour(e.target.value)}
-                    placeholder="HH"
-                    className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    max="59"
-                    value={manualStartMinute}
-                    onChange={(e) => setManualStartMinute(e.target.value)}
-                    placeholder="MM"
-                    className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    max="59"
-                    value={manualStartSecond}
-                    onChange={(e) => setManualStartSecond(e.target.value)}
-                    placeholder="SS"
-                    className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-300 mb-2">🕐 Ora Final (HH:MM:SS):</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    max="23"
-                    value={manualEndHour}
-                    onChange={(e) => setManualEndHour(e.target.value)}
-                    placeholder="HH"
-                    className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    max="59"
-                    value={manualEndMinute}
-                    onChange={(e) => setManualEndMinute(e.target.value)}
-                    placeholder="MM"
-                    className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    max="59"
-                    value={manualEndSecond}
-                    onChange={(e) => setManualEndSecond(e.target.value)}
-                    placeholder="SS"
-                    className="w-full px-3 py-3 bg-white/10 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-300 mb-2">📍 Locație:</label>
-                <select
-                  value={manualLocation}
-                  onChange={(e) => setManualLocation(parseInt(e.target.value))}
-                  className="w-full px-3 py-3 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value={1}>Locație 1</option>
-                  <option value={2}>Locație 2</option>
-                </select>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <label className="block text-sm text-gray-300">☕ Pauze:</label>
-                  <button
-                    onClick={addManualPause}
-                    className="text-xs bg-yellow-500 hover:bg-yellow-600 px-3 py-2 rounded-lg flex items-center gap-1"
-                  >
-                    <PlusCircle className="w-4 h-4" /> Adaugă
-                  </button>
-                </div>
-
-                {manualPauses.map((pause, index) => (
-                  <div key={index} className="bg-white/5 rounded-lg p-4 mb-3">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-sm text-yellow-400 font-semibold">Pauza {index + 1}</span>
-                      <button
-                        onClick={() => removeManualPause(index)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">Start:</p>
-                        <div className="grid grid-cols-3 gap-2">
-                          <input
-                            type="number"
-                            min="0"
-                            max="23"
-                            value={pause.startHour}
-                            onChange={(e) => updateManualPause(index, 'startHour', e.target.value)}
-                            placeholder="HH"
-                            className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                          />
-                          <input
-                            type="number"
-                            min="0"
-                            max="59"
-                            value={pause.startMinute}
-                            onChange={(e) => updateManualPause(index, 'startMinute', e.target.value)}
-                            placeholder="MM"
-                            className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                          />
-                          <input
-                            type="number"
-                            min="0"
-                            max="59"
-                            value={pause.startSecond}
-                            onChange={(e) => updateManualPause(index, 'startSecond', e.target.value)}
-                            placeholder="SS"
-                            className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">Final:</p>
-                        <div className="grid grid-cols-3 gap-2">
-                          <input
-                            type="number"
-                            min="0"
-                            max="23"
-                            value={pause.endHour}
-                            onChange={(e) => updateManualPause(index, 'endHour', e.target.value)}
-                            placeholder="HH"
-                            className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                          />
-                          <input
-                            type="number"
-                            min="0"
-                            max="59"
-                            value={pause.endMinute}
-                            onChange={(e) => updateManualPause(index, 'endMinute', e.target.value)}
-                            placeholder="MM"
-                            className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                          />
-                          <input
-                            type="number"
-                            min="0"
-                            max="59"
-                            value={pause.endSecond}
-                            onChange={(e) => updateManualPause(index, 'endSecond', e.target.value)}
-                            placeholder="SS"
-                            className="px-2 py-2 bg-white/10 rounded text-white text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={saveManualEntry}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2"
-                >
-                  <Check className="w-5 h-5" />
-                  Salvează
-                </button>
-                <button
-                  onClick={() => setShowManualEntry(false)}
-                  className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 rounded-xl"
-                >
-                  Anulează
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  // Main View Component - FĂRĂ butonul "Adaugă manual"
   const MainView = () => (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
       <DynamicIslandWidget />
+      <ManualEntryModal
+        showManualEntry={showManualEntry}
+        setShowManualEntry={setShowManualEntry}
+        activeLocation={activeLocation}
+        location2Custom={location2Custom}
+        workRecords={workRecords}
+        setWorkRecords={setWorkRecords}
+        formatExactTime={formatExactTime}
+      />
       
       <div className="h-16"></div>
       
@@ -681,7 +686,7 @@ const TimeTrackerApp = () => {
                       onClick={() => {
                         setIsEditingLocation(false);
                         setTempLocation("");
-                      }}
+                      }}​​​​​​​​​​​​​​​
                       className="flex-1 bg-red-500 hover:bg-red-600 py-2 rounded-lg flex items-center justify-center gap-2"
                     >
                       <X className="w-4 h-4" /> Anulează
@@ -817,7 +822,6 @@ const TimeTrackerApp = () => {
     </div>
   );
 
-  // History View Component - CU butonul "Adaugă Sesiune Manual"
   const HistoryView = () => {
     const currentRecords = workRecords[getLocationKey()] || [];
     const sortedRecords = [...currentRecords].sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
@@ -825,7 +829,15 @@ const TimeTrackerApp = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
         <DynamicIslandWidget />
-        <ManualEntryModal />
+        <ManualEntryModal
+          showManualEntry={showManualEntry}
+          setShowManualEntry={setShowManualEntry}
+          activeLocation={activeLocation}
+          location2Custom={location2Custom}
+          workRecords={workRecords}
+          setWorkRecords={setWorkRecords}
+          formatExactTime={formatExactTime}
+        />
         
         <div className="h-16"></div>
         
@@ -933,7 +945,6 @@ const TimeTrackerApp = () => {
     );
   };
 
-  // Settings View Component
   const SettingsView = () => {
     const loc1Count = workRecords.location1?.length || 0;
     const loc2Count = workRecords.location2?.length || 0;
@@ -1042,7 +1053,6 @@ const TimeTrackerApp = () => {
     );
   };
 
-  // Main Render - Router
   return (
     <>
       {activeView === 'main' && <MainView />}
