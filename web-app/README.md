@@ -173,4 +173,4 @@ Pentru întrebări sau suport:
 
 ---
 
-**Work Time Tracker Web** - Contorizarea orelor de lucru, optimizată pentru web! ⏰🌐✨
+**Work Time Tracker Web** - Contorizarea orelor de lucru, optimizată pentru web! ⏰🌐✨# Deploy trigger
