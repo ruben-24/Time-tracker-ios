@@ -324,7 +324,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useTimeTrackingStore } from '@/stores/dataStore'
+import { useDataStore } from '@/stores/dataStore'
 import { 
   Clock, 
   TrendingUp, 
@@ -337,8 +337,8 @@ import {
   Download
 } from 'lucide-vue-next'
 
-const timeStore = useTimeTrackingStore()
-const { workSessions, projects, stats } = timeStore
+const dataStore = useDataStore()
+const { entries, categories, stats } = dataStore
 
 const selectedPeriod = ref('week')
 
