@@ -31,3 +31,7 @@ app.use(pinia)
 app.use(router)
 
 app.mount('#app')
+
+// Register PWA features
+registerServiceWorker()
+showInstallPrompt()
